@@ -11,8 +11,12 @@ defmodule BoardGames.Application do
       BoardGamesWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: BoardGames.PubSub},
+      {BoardGames.GameSupervisor, []},
+      {Registry, keys: :unique, name: :game_registry},
+      # BoardGames.Presence,
       # Start the Endpoint (http/https)
-      BoardGamesWeb.Endpoint
+      BoardGamesWeb.Endpoint,
+      {BoardGames.LiveMonitor, %{}}
       # Start a worker by calling: BoardGames.Worker.start_link(arg)
       # {BoardGames.Worker, arg}
     ]

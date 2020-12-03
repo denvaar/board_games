@@ -1,0 +1,10 @@
+<h3>Players</h3>
+<%= if @game == nil or @game.players == [] do %>
+  <i>Nobody has joined yet.</i>
+<% else %>
+  <ul>
+    <%= for player <- @game.players do %>
+      <li><%= player %></li>
+    <% end %>
+  </ul>
+<% end %>
