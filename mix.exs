@@ -43,7 +43,8 @@ defmodule BoardGames.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:sternhalma, git: "https://github.com/denvaar/sternhalma.git", tag: "0.02"}
     ]
   end
 
