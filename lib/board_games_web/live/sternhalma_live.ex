@@ -28,10 +28,14 @@ defmodule BoardGamesWeb.SternhalmaLive do
     :ok
   end
 
-  # @impl true
-  # def handle_event("enter-name", %{"player" => %{"name" => name}}, socket) do
-  #   {:noreply, assign(socket, player_name: name)}
-  # end
+  @impl true
+  def handle_event("start-game", _params, socket) do
+    with {:ok, game} <- GameState.start_game(socket.assigns.game_id) do
+      broadcast_game_state_update!(socket.assigns.game_id, game)
+    end
+
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_info(%{event: "game_state_update", payload: game}, socket) do
@@ -56,7 +60,7 @@ defmodule BoardGamesWeb.SternhalmaLive do
 
   defp monitor_live_view_process(game_id, player_name) do
     with :ok <-
-           BoardGames.LiveMonitor.monitor(
+           LiveMonitor.monitor(
              self(),
              __MODULE__,
              %{player_id: player_name, game_id: game_id}

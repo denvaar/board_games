@@ -1,10 +1,14 @@
-<h3>Players</h3>
-<%= if @game == nil or @game.players == [] do %>
-  <i>Nobody has joined yet.</i>
+<%= if @game do %>
+
+  <%= if @game.status == :setup do %>
+    <%= live_component(@socket, LobbyComponent, players: @game.players) %>
+  <% end %>
+
+  <%= if @game.status == :playing do %>
+    <%= live_component(@socket, GameBoardComponent, board: @game.board) %>
+  <% end %>
+
 <% else %>
-  <ul>
-    <%= for player <- @game.players do %>
-      <li><%= player %></li>
-    <% end %>
-  </ul>
+  <i>No game here</i>
 <% end %>
+
