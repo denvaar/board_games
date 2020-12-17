@@ -1,5 +1,8 @@
 <%= form_for @conn, Routes.play_game_path(@conn, :create), fn f -> %>
   <%= text_input f, :game_id, placeholder: "Enter new or existing game id" %>
   <%= text_input f, :player_name, placeholder: "Enter your name" %>
-  <%= submit "Join game" %>
+  <%= select f, :marble, BoardGames.MarbleColors.all_colors() %>
+  <div>
+    <%= submit "Join game" %>
+  </div>
 <% end %>

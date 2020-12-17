@@ -16,30 +16,18 @@ defmodule GameBoardComponent do
       |> Enum.map(fn cell ->
         pos =
           cell.position
-          |> Sternhalma.Hex.to_pixel()
+          |> Sternhalma.to_pixel()
           |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
 
         {pos, color_for_marble(cell.marble, @mapping), border_color(cell.marble, @border_mapping)}
       end)
 
-    thing =
-      assigns.board
-      |> Enum.map(fn c ->
-        {x, y} =
-          c.position
-          |> Sternhalma.Hex.to_pixel()
-
-        # |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
-
-        "(#{x}, #{y}),"
-      end)
-      |> List.to_string()
-
     ~L"""
-    <p><%= thing %></p>
     <div class="board-container">
-      <%= for {{x, y}, marble_color, border_color} <- positions do %>
+      <%= for {{{x, y}, marble_color, border_color}, index} <- Enum.with_index(positions) do %>
         <div
+          phx-click="marble-click"
+          phx-value-cell_index="<%= index %>"
           class="cell"
           style="left:<%= x %>px;bottom:<%= y %>px;background-color:<%= marble_color %>;border-color:<%= border_color %>;"></div>
       <% end %>

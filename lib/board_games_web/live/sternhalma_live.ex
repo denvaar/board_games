@@ -37,8 +37,30 @@ defmodule BoardGamesWeb.SternhalmaLive do
     {:noreply, socket}
   end
 
+  def handle_event("marble-click", %{"cell_index" => index}, socket) do
+    cell =
+      socket.assigns.game.board
+      |> Enum.at(String.to_integer(index))
+
+    start = Map.get(socket.assigns, :start)
+
+    if start do
+      with {:ok, game} <- GameState.move_marble(socket.assigns.game_id, start, cell) do
+        broadcast_game_state_update!(socket.assigns.game_id, game)
+      else
+        e ->
+          IO.inspect(e)
+      end
+
+      {:noreply, assign(socket, start: nil)}
+    else
+      {:noreply, assign(socket, start: cell)}
+    end
+  end
+
   @impl true
   def handle_info(%{event: "game_state_update", payload: game}, socket) do
+    IO.inspect(game)
     {:noreply, assign(socket, game: game)}
   end
 

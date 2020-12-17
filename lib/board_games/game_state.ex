@@ -3,7 +3,7 @@ defmodule BoardGames.GameState do
   Manage shared state for a game of Chinese Checkers.
   """
 
-  alias Sternhalma.{Board, Cell}
+  alias Sternhalma.{Pathfinding, Board, Cell, Hex}
 
   use GenServer, restart: :transient
 
@@ -15,7 +15,8 @@ defmodule BoardGames.GameState do
           turn: nil | String.t(),
           last_move: list(Cell.t()),
           status: game_status(),
-          players: list(String.t())
+          players: list(String.t()),
+          marble_colors: Map.t()
         }
 
   def start_link(game_id) do
@@ -38,6 +39,10 @@ defmodule BoardGames.GameState do
     GenServer.call(via(game_id), {:set_status, :playing})
   end
 
+  def move_marble(game_id, start, finish) do
+    GenServer.call(via(game_id), {:move_marble, start, finish})
+  end
+
   @impl true
   def init(game_id) do
     initial_state = %{
@@ -46,7 +51,8 @@ defmodule BoardGames.GameState do
       status: :setup,
       turn: nil,
       last_move: [],
-      players: []
+      players: [],
+      marble_colors: %{}
     }
 
     {:ok, initial_state}
@@ -54,16 +60,39 @@ defmodule BoardGames.GameState do
 
   @impl true
   def handle_call({:join_game, player_name}, _from, state) do
-    # new_state = %{state | players: [player_name | state.players]}
-    new_state = add_player_impl(state, player_name)
+    # TODO: use with to handle errors
+    # TODO: game must be in :setup status
+    {:ok, board} = Sternhalma.setup_marbles(state.board, player_name)
+
+    new_state = %{
+      state
+      | board: board,
+        players: [player_name | state.players],
+        marble_colors: assign_color(player_name, state.marble_colors)
+    }
 
     {:reply, {:ok, new_state}, new_state}
   end
 
-  def handle_call({:leave_game, player_name}, _from, state) do
-    new_state = %{state | players: Enum.filter(state.players, &(&1 != player_name))}
+  def handle_call({:move_marble, start, finish}, _from, state) do
+    board = Sternhalma.move_marble(state.board, start.marble, start, finish)
 
-    {:reply, {:ok, new_state}, new_state}
+    with true <- true do
+      # it's the player's turn
+      # it's a valid move
+      new_state = %{state | board: board, turn: next_turn(state.turn, state.players)}
+      {:reply, {:ok, new_state}, new_state}
+    else
+      _ ->
+        {:reply, {:error, "something went wrong"}, state}
+    end
+  end
+
+  def handle_call({:leave_game, player_name}, _from, state) do
+    # TODO
+    # new_state = %{state | players: Enum.filter(state.players, &(&1 != player_name))}
+
+    {:reply, {:ok, state}, state}
   end
 
   def handle_call({:set_status, status}, _from, state) do
@@ -96,31 +125,34 @@ defmodule BoardGames.GameState do
   defp perform_side_effects({:ok, game_state}, _), do: {:ok, game_state}
   defp perform_side_effects({:error, game_state}, _), do: {:error, game_state}
 
-  @spec add_player_impl(game_state(), String.t()) :: game_state()
-  defp add_player_impl(game_state, player_name) do
-    number_of_existing_players = length(game_state.players)
-
-    %{
-      game_state
-      | players: [player_name | game_state.players],
-        board:
-          Board.setup_triangle(
-            game_state.board,
-            position_opponent(number_of_existing_players),
-            player_name
-          )
-    }
-  end
-
-  @spec position_opponent(0..5) :: Board.home_triangle()
-  defp position_opponent(0), do: :top
-  defp position_opponent(1), do: :bottom
-  defp position_opponent(2), do: :top_left
-  defp position_opponent(3), do: :bottom_right
-  defp position_opponent(4), do: :top_right
-  defp position_opponent(5), do: :bottom_left
-
   defp via(game_id) do
     {:via, Registry, {:game_registry, game_id}}
+  end
+
+  @spec next_turn(String.t(), list(String.t())) :: String.t()
+  defp next_turn(turn, players) do
+    next_player_index =
+      case Enum.find_index(players, &(&1 == turn)) do
+        nil ->
+          0
+
+        current_player_index ->
+          rem(current_player_index + 1, length(players))
+      end
+
+    Enum.at(players, next_player_index)
+  end
+
+  @spec assign_color(String.t(), Map.t()) :: Map.t()
+  defp assign_color(player_name, marble_colors) do
+    with [first_available_color | _] <-
+           marble_colors
+           |> Map.values()
+           |> BoardGames.MarbleColors.available_colors() do
+      Map.put(marble_colors, player_name, first_available_color)
+    else
+      _ ->
+        marble_colors
+    end
   end
 end
