@@ -1,0 +1,47 @@
+<%= if @game do %>
+  <%= if @game.status == :setup do %>
+    <%= if length(@game.players) > 1 do %>
+      <button phx-click="start-game" class="button">Play</button>
+    <% end %>
+    <%= render("_players.html", game: @game) %>
+  <% end %>
+
+  <%= if @game.status == :over do %>
+    <%= render("_game_over.html", winnner: @game.winner) %>
+  <% end %>
+
+  <%= if @game.status == :playing do %>
+    <%= render("_players.html", game: @game) %>
+
+    <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg);">
+      <%= for {{{left, bottom}, marble_color, border_color, show_glow}, index} <- positions(@game.board, @game.marble_colors, @start) do %>
+        <%= if @game.turn == @player_name do %>
+          <div
+            phx-click="marble-click"
+            phx-value-cell_index="<%= index %>"
+            class="cell active <%= if show_glow, do: to_string(:glow) %>"
+            style="left:<%= left %>px;
+                           bottom:<%= bottom %>px;
+                           background-color:<%= marble_color %>;
+                           border-color:<%= border_color %>;">
+          </div>
+        <% else %>
+          <div
+            class="cell"
+            style="left:<%= left %>px;
+                           bottom:<%= bottom %>px;
+                           background-color:<%= marble_color %>;
+                           border-color:<%= border_color %>;">
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+<% else %>
+  <p>
+  <i>No game here yet...</i>
+  </p>
+  <p>You can <%= link "create a new one", to: Routes.play_game_path(BoardGamesWeb.Endpoint, :new) %>.<p>
+<% end %>
+

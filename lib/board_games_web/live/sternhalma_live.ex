@@ -11,10 +11,14 @@ defmodule BoardGamesWeb.SternhalmaLive do
     if connected?(socket) do
       with {:ok, game} <- setup_live_view_process(game_id, player_name) do
         broadcast_game_state_update!(game_id, game)
+      else
+        {:error, code, game} ->
+          IO.inspect(code)
+          broadcast_game_state_update!(game_id, game)
       end
     end
 
-    {:ok, assign(socket, game: nil, game_id: game_id, player_name: player_name)}
+    {:ok, assign(socket, game: nil, game_id: game_id, player_name: player_name, start: nil)}
   end
 
   def unmount(_reason, %{player_id: player_id, game_id: game_id}) do
@@ -26,6 +30,11 @@ defmodule BoardGamesWeb.SternhalmaLive do
     end
 
     :ok
+  end
+
+  @impl true
+  def render(assigns) do
+    BoardGamesWeb.SternhalmaView.render("sternhalma_live.html", assigns)
   end
 
   @impl true
@@ -60,7 +69,6 @@ defmodule BoardGamesWeb.SternhalmaLive do
 
   @impl true
   def handle_info(%{event: "game_state_update", payload: game}, socket) do
-    IO.inspect(game)
     {:noreply, assign(socket, game: game)}
   end
 
@@ -73,7 +81,7 @@ defmodule BoardGamesWeb.SternhalmaLive do
     |> monitor_live_view_process(player_name)
     |> ensure_game_process_exists()
     |> subscribe_to_updates()
-    |> GameState.join_game(player_name)
+    |> ensure_player_joins(player_name)
   end
 
   defp topic(game_id) do
@@ -105,6 +113,11 @@ defmodule BoardGamesWeb.SternhalmaLive do
     |> BoardGamesWeb.Endpoint.subscribe()
 
     game_id
+  end
+
+  defp ensure_player_joins(game_id, player_name) do
+    game_id
+    |> GameState.join_game(player_name)
   end
 
   defp broadcast_game_state_update!(game_id, game) do

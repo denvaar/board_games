@@ -3,8 +3,6 @@ defmodule BoardGames.GameState do
   Manage shared state for a game of Chinese Checkers.
   """
 
-  alias Sternhalma.{Pathfinding, Board, Cell, Hex}
-
   use GenServer, restart: :transient
 
   @type game_status :: :setup | :playing | :over
@@ -13,6 +11,7 @@ defmodule BoardGames.GameState do
           game_id: binary(),
           board: Board.t(),
           turn: nil | String.t(),
+          winner: nil | String.t(),
           last_move: list(Cell.t()),
           status: game_status(),
           players: list(String.t()),
@@ -47,9 +46,10 @@ defmodule BoardGames.GameState do
   def init(game_id) do
     initial_state = %{
       id: game_id,
-      board: Board.empty(),
+      board: Sternhalma.empty_board(),
       status: :setup,
       turn: nil,
+      winner: nil,
       last_move: [],
       players: [],
       marble_colors: %{}
@@ -60,39 +60,71 @@ defmodule BoardGames.GameState do
 
   @impl true
   def handle_call({:join_game, player_name}, _from, state) do
-    # TODO: use with to handle errors
     # TODO: game must be in :setup status
-    {:ok, board} = Sternhalma.setup_marbles(state.board, player_name)
 
-    new_state = %{
-      state
-      | board: board,
-        players: [player_name | state.players],
-        marble_colors: assign_color(player_name, state.marble_colors)
-    }
+    case Enum.find(state.players, &(&1 == player_name)) do
+      nil ->
+        {:ok, board} = Sternhalma.setup_marbles(state.board, player_name)
 
-    {:reply, {:ok, new_state}, new_state}
+        new_state = %{
+          state
+          | board: board,
+            players: [player_name | state.players],
+            marble_colors: assign_color(player_name, state.marble_colors)
+        }
+
+        {:reply, {:ok, new_state}, new_state}
+
+      existing_player ->
+        {:reply, {:error, :player_exists, state}, state}
+    end
   end
 
   def handle_call({:move_marble, start, finish}, _from, state) do
-    board = Sternhalma.move_marble(state.board, start.marble, start, finish)
+    if start.marble == state.turn do
+      path = Sternhalma.find_path(state.board, start, finish)
 
-    with true <- true do
-      # it's the player's turn
-      # it's a valid move
-      new_state = %{state | board: board, turn: next_turn(state.turn, state.players)}
-      {:reply, {:ok, new_state}, new_state}
+      if !Enum.empty?(path) do
+        board = Sternhalma.move_marble(state.board, start.marble, start, finish)
+        winner = Sternhalma.winner(board)
+
+        new_state = %{
+          state
+          | board: board,
+            winner: winner,
+            turn: next_turn(state.turn, state.players)
+        }
+
+        new_state =
+          if winner != nil do
+            with {:ok, state} <- change_game_status(new_state, :over) do
+              state
+            else
+              _ ->
+                new_state
+            end
+          else
+            new_state
+          end
+
+        {:reply, {:ok, new_state}, new_state}
+      else
+        {:reply, {:error, :no_path}, state}
+      end
     else
-      _ ->
-        {:reply, {:error, "something went wrong"}, state}
+      {:reply, {:error, :wrong_marble}, state}
     end
   end
 
   def handle_call({:leave_game, player_name}, _from, state) do
     # TODO
-    # new_state = %{state | players: Enum.filter(state.players, &(&1 != player_name))}
 
-    {:reply, {:ok, state}, state}
+    if state.status == :setup do
+      new_state = %{state | players: Enum.reject(state.players, &(&1 == player_name))}
+      {:reply, {:ok, new_state}, new_state}
+    else
+      {:reply, {:ok, state}, state}
+    end
   end
 
   def handle_call({:set_status, status}, _from, state) do
