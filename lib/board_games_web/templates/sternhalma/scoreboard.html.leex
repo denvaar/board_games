@@ -1,0 +1,13 @@
+<div class="scoreboard">
+  <h3>Players</h3>
+  <ul>
+    <%= for player <- @game.players do %>
+      <li>
+        <span style="color:<%= color(@game.marble_colors, player) %>;background-color: <%= background_color(@game.marble_colors, player) %>;" class="marble"></span><%= player %>
+        <%= if @game.turn == player do %>
+          <span class="turn-indicator">✋</span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</div>

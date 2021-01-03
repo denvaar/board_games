@@ -44,7 +44,8 @@ defmodule BoardGames.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:sternhalma, git: "https://github.com/denvaar/sternhalma.git", tag: "0.03"}
+      # {:sternhalma, git: "https://github.com/denvaar/sternhalma.git", tag: "0.03"}
+      {:sternhalma, path: "/Users/denvaar/projects/sternhalma"}
     ]
   end
 

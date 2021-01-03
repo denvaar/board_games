@@ -1,14 +1,48 @@
 /* This file is for your main application css. */
-@import "./phoenix.css";
 @import "../node_modules/nprogress/nprogress.css";
 
 html {
     box-sizing: border-box;
+    font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Ubuntu,
+        Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1.25rem;
 }
 *,
 *:before,
 *:after {
     box-sizing: inherit;
+}
+
+input {
+    font-size: 1rem;
+}
+
+.m-1 {
+    margin: 10px;
+}
+
+.input-label {
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    filter: opacity(75%);
+}
+
+.text-input {
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+.button {
+    font-size: 0.8rem;
+    padding: 12px;
+    padding-left: 22px;
+    padding-right: 22px;
+    background: gray;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    background: royalblue;
 }
 
 /* LiveView specific classes for your customizations */
@@ -105,17 +139,62 @@ html {
     margin-top: 30px;
     height: 400px;
     width: 400px;
-    /* border: 1px solid cornflowerblue; */
     .cell {
+        transition: 0.2s;
         position: absolute;
         width: 20px;
         height: 20px;
         border-radius: 50%;
         border: 2px solid;
-        transition: 0.2s;
+    }
 
+    .active {
         &:hover {
             transform: scale(1.2, 1.2);
+        }
+    }
+
+    .glow {
+        animation: glow 0.3s infinite alternate;
+    }
+}
+@keyframes glow {
+    from {
+        box-shadow: 0 0 2px -2px #999;
+    }
+    to {
+        box-shadow: 0 0 2px 2px #999;
+    }
+}
+
+.scoreboard {
+    ul {
+        list-style: none;
+        padding-left: 0;
+
+        li {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            padding-bottom: 3px;
+            padding-top: 3px;
+            border-top: 1px solid #999;
+
+            &:last-child {
+                border-bottom: 1px solid #999;
+            }
+
+            .turn-indicator {
+                margin-left: 10px;
+            }
+
+            .marble {
+                margin-right: 10px;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 2px solid;
+            }
         }
     }
 }
