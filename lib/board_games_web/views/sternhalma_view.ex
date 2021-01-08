@@ -7,22 +7,53 @@ defmodule BoardGamesWeb.SternhalmaView do
   @min_y 1
   @max_y 25
 
-  def positions(board, marble_colors, start_cell) do
-    board
-    |> Enum.map(fn cell ->
-      pos =
-        cell.position
-        |> Sternhalma.to_pixel()
-        |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
+  def cell_classes(cell, last_path, start_cell, player_name, is_active) do
+    classes =
+      %{
+        "glow" => start_cell != nil and start_cell.marble != nil and cell == start_cell,
+        "path" =>
+          last_path != nil and is_active and
+            Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end),
+        "active" =>
+          is_active and
+            ((cell.marble == player_name and start_cell == nil) or
+               (cell.marble == nil and start_cell != nil))
+      }
+      |> Map.to_list()
+      |> Enum.reduce("cell", fn {css_class, should_use?}, classes ->
+        if should_use?, do: "#{classes} #{css_class}", else: classes
+      end)
+  end
 
-      with {primary_color, secondary_color} <- Map.get(marble_colors, cell.marble) do
-        {pos, primary_color, secondary_color, start_cell != nil and cell == start_cell}
-      else
-        nil ->
-          {pos, "#ffffff", "#999999", false}
-      end
-    end)
-    |> Enum.with_index()
+  def cell_styles(cell, last_path, marble_colors, players, player_name) do
+    {left, bottom} =
+      cell.position
+      |> Sternhalma.to_pixel()
+      |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
+
+    {bg_color, border_color} = colors(marble_colors, cell.marble)
+
+    step_index =
+      Enum.find_index(last_path, fn path_cell -> path_cell.position == cell.position end)
+
+    [
+      "left: #{left}px",
+      "bottom: #{bottom}px",
+      "background-color: #{bg_color}",
+      "border-color: #{border_color}",
+      "--rotation: #{rotate(players, player_name) * -1}deg",
+      "--path-step: \"#{if step_index, do: step_index + 1}\""
+    ]
+    |> Enum.join(";")
+  end
+
+  defp colors(marble_colors, marble) do
+    with {primary_color, secondary_color} <- Map.get(marble_colors, marble) do
+      {primary_color, secondary_color}
+    else
+      nil ->
+        {"#ffffff", "#999999"}
+    end
   end
 
   @spec rotate(list(String.t()), String.t()) :: non_neg_integer()
