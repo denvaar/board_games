@@ -135,6 +135,9 @@ input {
 /* --------------------- */
 
 .board-container {
+    --path-step: "";
+    --rotation: "0deg";
+
     position: relative;
     margin-top: 30px;
     height: 400px;
@@ -146,16 +149,28 @@ input {
         height: 20px;
         border-radius: 50%;
         border: 2px solid;
+        transform: rotate(var(--rotation));
     }
 
     .active {
         &:hover {
-            transform: scale(1.2, 1.2);
+            transform: scale(1.2, 1.2) rotate(var(--rotation));
         }
     }
 
     .glow {
         animation: glow 0.3s infinite alternate;
+    }
+
+    .path {
+        border-style: dashed;
+        border-width: 3px !important;
+        font-size: 10px;
+        text-align: center;
+
+        &::after {
+            content: var(--path-step);
+        }
     }
 }
 @keyframes glow {

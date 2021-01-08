@@ -92,6 +92,7 @@ defmodule BoardGames.GameState do
           state
           | board: board,
             winner: winner,
+            last_move: path,
             turn: next_turn(state.turn, state.players)
         }
 

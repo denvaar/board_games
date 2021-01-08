@@ -13,29 +13,21 @@
   <%= if @game.status == :playing do %>
     <%= render("_players.html", game: @game) %>
 
-    <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg);">
-      <%= for {{{left, bottom}, marble_color, border_color, show_glow}, index} <- positions(@game.board, @game.marble_colors, @start) do %>
-        <%= if @game.turn == @player_name do %>
-          <div
+    <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg)">
+      <%= for {cell, index} <- Enum.with_index(@game.board) do %>
+
+        <div
+          <%= if @game.turn == @player_name and ((cell.marble == @player_name) or (cell.marble == nil and @start)) do %>
             phx-click="marble-click"
             phx-value-cell_index="<%= index %>"
-            class="cell active <%= if show_glow, do: to_string(:glow) %>"
-            style="left:<%= left %>px;
-                           bottom:<%= bottom %>px;
-                           background-color:<%= marble_color %>;
-                           border-color:<%= border_color %>;">
-          </div>
-        <% else %>
-          <div
-            class="cell"
-            style="left:<%= left %>px;
-                           bottom:<%= bottom %>px;
-                           background-color:<%= marble_color %>;
-                           border-color:<%= border_color %>;">
-          </div>
-        <% end %>
+          <% end %>
+            class="<%= cell_classes(cell, @game.last_move, @start, @player_name, @game.turn == @player_name) %>"
+            style="<%= cell_styles(cell, @game.last_move, @game.marble_colors, @game.players, @player_name) %>">
+        </div>
+
       <% end %>
     </div>
+
   <% end %>
 
 <% else %>
