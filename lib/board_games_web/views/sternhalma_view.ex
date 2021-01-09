@@ -1,18 +1,19 @@
 defmodule BoardGamesWeb.SternhalmaView do
   use BoardGamesWeb, :view
 
-  @board_size 380
+  @board_size 485
   @min_x -0.39230484541326227
   @max_x 20.392304845413264
-  @min_y 1
-  @max_y 25
+  @max_x 23
+  @min_y 0
+  @max_y 27
 
   def cell_classes(cell, last_path, start_cell, player_name, is_active) do
     classes =
       %{
         "glow" => start_cell != nil and start_cell.marble != nil and cell == start_cell,
         "path" =>
-          last_path != nil and is_active and
+          last_path != nil and
             Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end),
         "active" =>
           is_active and
@@ -36,14 +37,21 @@ defmodule BoardGamesWeb.SternhalmaView do
     step_index =
       Enum.find_index(last_path, fn path_cell -> path_cell.position == cell.position end)
 
-    [
+    base_styles = [
+      "--rotation: #{rotate(players, player_name) * -1}deg",
       "left: #{left}px",
       "bottom: #{bottom}px",
       "background-color: #{bg_color}",
-      "border-color: #{border_color}",
-      "--rotation: #{rotate(players, player_name) * -1}deg",
-      "--path-step: \"#{if step_index, do: step_index + 1}\""
+      "border-color: #{border_color}"
     ]
+
+    [
+      {"--path-step: \"#{if step_index, do: step_index + 1}\"", step_index != nil},
+      {"color: #{text_color(bg_color)}", step_index != nil}
+    ]
+    |> Enum.reduce(base_styles, fn {style, use?}, styles ->
+      if use?, do: [style | styles], else: styles
+    end)
     |> Enum.join(";")
   end
 
@@ -55,6 +63,22 @@ defmodule BoardGamesWeb.SternhalmaView do
         {"#ffffff", "#999999"}
     end
   end
+
+  defp text_color(<<"#", hex_color::binary>>) do
+    with {:ok, <<red, green, blue>>} <- Base.decode16(hex_color, case: :mixed) do
+      if red * 0.299 + green * 0.587 + blue * 0.114 > 186 do
+        "#000000"
+      else
+        "#ffffff"
+      end
+    else
+      _ ->
+        # default to black
+        "#000000"
+    end
+  end
+
+  defp luminance(_hex_color), do: "#000000"
 
   @spec rotate(list(String.t()), String.t()) :: non_neg_integer()
   def rotate(players, player_name) do
@@ -101,8 +125,8 @@ defmodule BoardGamesWeb.SternhalmaView do
     x = x / scale * size
     y = y / scale * size
 
-    x = x + size / 2
-    y = y + size / 2
+    x = round(x + size / 2)
+    y = round(y + size / 2)
 
     {x, y}
   end
