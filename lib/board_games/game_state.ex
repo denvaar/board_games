@@ -5,11 +5,14 @@ defmodule BoardGames.GameState do
 
   use GenServer, restart: :transient
 
+  alias BoardGames.{Marble, EventHandlers}
+
   @type game_status :: :setup | :playing | :over
 
   @type game_state :: %{
           game_id: binary(),
           board: Board.t(),
+          marbles: list(Marble.t()),
           turn: nil | String.t(),
           winner: nil | String.t(),
           last_move: list(Cell.t()),
@@ -47,8 +50,10 @@ defmodule BoardGames.GameState do
     initial_state = %{
       id: game_id,
       board: Sternhalma.empty_board(),
+      marbles: [],
       status: :setup,
       turn: nil,
+      timer_ref: nil,
       winner: nil,
       last_move: [],
       players: [],
@@ -60,132 +65,63 @@ defmodule BoardGames.GameState do
 
   @impl true
   def handle_call({:join_game, player_name}, _from, state) do
-    # TODO: game must be in :setup status
-
-    case Enum.find(state.players, &(&1 == player_name)) do
-      nil ->
-        {:ok, board} = Sternhalma.setup_marbles(state.board, player_name)
-
-        new_state = %{
-          state
-          | board: board,
-            players: [player_name | state.players],
-            marble_colors: assign_color(player_name, state.marble_colors)
-        }
-
-        {:reply, {:ok, new_state}, new_state}
-
-      existing_player ->
-        {:reply, {:error, :player_exists, state}, state}
+    with {:ok, new_state} <- EventHandlers.JoinGame.handle({player_name}, state) do
+      {:reply, {:ok, new_state}, new_state}
+    else
+      {:error, {code, state}} ->
+        {:reply, {:error, code, state}, state}
     end
   end
 
   def handle_call({:move_marble, start, finish}, _from, state) do
-    if start.marble == state.turn do
-      path = Sternhalma.find_path(state.board, start, finish)
-
-      if !Enum.empty?(path) do
-        board = Sternhalma.move_marble(state.board, start.marble, start, finish)
-        winner = Sternhalma.winner(board)
-
-        new_state = %{
-          state
-          | board: board,
-            winner: winner,
-            last_move: path,
-            turn: next_turn(state.turn, state.players)
-        }
-
-        new_state =
-          if winner != nil do
-            with {:ok, state} <- change_game_status(new_state, :over) do
-              state
-            else
-              _ ->
-                new_state
-            end
-          else
-            new_state
-          end
-
-        {:reply, {:ok, new_state}, new_state}
-      else
-        {:reply, {:error, :no_path}, state}
-      end
+    with {:ok, new_state} <- EventHandlers.MoveMarble.handle({start, finish}, state) do
+      {:reply, {:ok, new_state}, new_state}
     else
-      {:reply, {:error, :wrong_marble}, state}
+      {:error, {code, state}} ->
+        {:reply, {:error, code, state}, state}
     end
   end
 
   def handle_call({:leave_game, player_name}, _from, state) do
-    # TODO
-
-    if state.status == :setup do
-      new_state = %{state | players: Enum.reject(state.players, &(&1 == player_name))}
+    with {:ok, new_state} <- EventHandlers.LeaveGame.handle({player_name}, state) do
       {:reply, {:ok, new_state}, new_state}
     else
-      {:reply, {:ok, state}, state}
+      {:error, {code, state}} ->
+        {:reply, {:error, code, state}, state}
     end
   end
 
   def handle_call({:set_status, status}, _from, state) do
-    {result, new_state} =
-      state
-      |> change_game_status(status)
-      |> perform_side_effects(status)
-
-    {:reply, {result, new_state}, new_state}
+    with {:ok, new_state} <- EventHandlers.StatusChange.handle({status}, state) do
+      {:reply, {:ok, new_state}, new_state}
+    else
+      {:error, {code, state}} ->
+        {:reply, {:error, code, state}, state}
+    end
   end
 
-  # TODO consider moving these private functions to some other module
+  @impl true
+  def handle_info({:advance_marble_along_path, current_position, []}, state) do
+    {:ok, new_state} =
+      EventHandlers.AdvanceMarble.handle(
+        {current_position, []},
+        state
+      )
 
-  @spec change_game_status(game_state(), game_status()) :: {:ok | :error, game_state()}
-  defp change_game_status(game_state, :playing)
-       when length(game_state.players) > 1 and game_state.status == :setup,
-       do: {:ok, %{game_state | status: :playing}}
-
-  defp change_game_status(game_state, :over) when game_state.status == :playing,
-    do: {:ok, %{game_state | status: :over}}
-
-  defp change_game_status(game_state, _), do: {:error, game_state}
-
-  @spec perform_side_effects({:ok | :error, game_state()}, game_status()) ::
-          {:ok | :error, game_state()}
-  defp perform_side_effects({:ok, game_state}, :playing) do
-    {:ok, %{game_state | turn: List.first(game_state.players)}}
+    {:noreply, new_state}
   end
 
-  defp perform_side_effects({:ok, game_state}, _), do: {:ok, game_state}
-  defp perform_side_effects({:error, game_state}, _), do: {:error, game_state}
+  def handle_info({:advance_marble_along_path, current_position, path}, state) do
+    {:ok, new_state} =
+      EventHandlers.AdvanceMarble.handle(
+        {current_position, path},
+        state
+      )
+
+    {:noreply, new_state}
+  end
 
   defp via(game_id) do
     {:via, Registry, {:game_registry, game_id}}
-  end
-
-  @spec next_turn(String.t(), list(String.t())) :: String.t()
-  defp next_turn(turn, players) do
-    next_player_index =
-      case Enum.find_index(players, &(&1 == turn)) do
-        nil ->
-          0
-
-        current_player_index ->
-          rem(current_player_index + 1, length(players))
-      end
-
-    Enum.at(players, next_player_index)
-  end
-
-  @spec assign_color(String.t(), Map.t()) :: Map.t()
-  defp assign_color(player_name, marble_colors) do
-    with [first_available_color | _] <-
-           marble_colors
-           |> Map.values()
-           |> BoardGames.MarbleColors.available_colors() do
-      Map.put(marble_colors, player_name, first_available_color)
-    else
-      _ ->
-        marble_colors
-    end
   end
 end

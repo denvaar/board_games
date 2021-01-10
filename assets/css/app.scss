@@ -134,27 +134,50 @@ input {
 
 /* --------------------- */
 
+%common-cell {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 3px solid;
+    left: var(--left);
+    bottom: var(--bottom);
+    transform: rotate(var(--rotation));
+}
+
 .board-container {
     --path-step: "";
     --rotation: "0deg";
+    --left: "0px";
+    --bottom: "0px";
+    --bgc: "#000000";
+    --bc: "#000000";
 
     position: relative;
     height: 450px;
     width: 450px;
-    .cell {
-        transition: 0.2s;
-        position: absolute;
-        width: 25px;
-        height: 25px;
-        border-radius: 50%;
-        border: 3px solid;
-        transform: rotate(var(--rotation));
+
+    .board-cell {
+        @extend %common-cell;
+
+        border-color: #999;
+        background-color: #ebebeb;
+        transition: transform 0.2s ease-in;
     }
 
-    .active {
+    .clicked {
         &:hover {
             transform: scale(1.2, 1.2) rotate(var(--rotation));
         }
+    }
+
+    .marble {
+        @extend %common-cell;
+
+        background: radial-gradient(var(--bgc) 20%, var(--bc));
+        border-color: var(--bc);
+        transition: left 0.4s ease-in-out, bottom 0.4s ease-in-out,
+            transform 0.2s ease-in;
     }
 
     .glow {
@@ -176,10 +199,10 @@ input {
 }
 @keyframes glow {
     from {
-        box-shadow: 0 0 2px -2px #999;
+        box-shadow: 0 0 2px -2px var(--bgc);
     }
     to {
-        box-shadow: 0 0 2px 2px #999;
+        box-shadow: 0 0 2px 2px var(--bgc);
     }
 }
 
