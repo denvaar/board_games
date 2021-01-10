@@ -8,61 +8,92 @@ defmodule BoardGamesWeb.SternhalmaView do
   @min_y 0
   @max_y 27
 
-  def cell_classes(cell, last_path, start_cell, player_name, is_active) do
-    classes =
-      %{
-        "glow" => start_cell != nil and start_cell.marble != nil and cell == start_cell,
-        "path" =>
-          last_path != nil and
-            Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end),
-        "active" =>
-          is_active and
-            ((cell.marble == player_name and start_cell == nil) or
-               (cell.marble == nil and start_cell != nil))
-      }
-      |> Map.to_list()
-      |> Enum.reduce("cell", fn {css_class, should_use?}, classes ->
-        if should_use?, do: "#{classes} #{css_class}", else: classes
-      end)
+  def marble_css_classes(is_turn, marble_owner, player_name, start, marble, last_path) do
+    marble_position = Sternhalma.from_pixel({marble.x, marble.y})
+
+    path_includes_marble? =
+      last_path != nil and
+        Enum.any?(last_path, fn path_cell -> path_cell.position == marble_position end)
+
+    ["marble"]
+    |> add_if(fn -> "clicked" end, is_turn and marble_owner == player_name and start == nil)
+    |> add_if(fn -> "glow" end, start != nil and start.position == marble_position)
+    |> add_if(fn -> "path" end, path_includes_marble?)
+    |> Enum.join(" ")
   end
 
-  def cell_styles(cell, last_path, marble_colors, players, player_name) do
+  def marble_styles(marble, players, player_name, last_path) do
+    {left, bottom} =
+      {marble.x, marble.y}
+      |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
+
+    marble_position = Sternhalma.from_pixel({marble.x, marble.y})
+
+    step_index = compute_step_index(last_path, marble_position)
+
+    [
+      "--left:#{left}px",
+      "--bottom:#{bottom}px",
+      "--bgc:#{marble.bg_color}",
+      "--bc:#{marble.border_color}",
+      "--rotation: #{rotate(players, player_name) * -1}deg",
+      "color: #{text_color(marble.bg_color)}"
+    ]
+    |> add_if(fn -> "--path-step: \"#{step_index}\"" end, step_index != nil)
+    |> Enum.join(";")
+  end
+
+  def board_cell_css_classes(is_turn, start, cell, last_path) do
+    path_includes_cell? =
+      last_path != nil and
+        Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end)
+
+    ["board-cell"]
+    |> add_if(fn -> "clicked" end, is_turn and start != nil)
+    |> add_if(fn -> "path" end, path_includes_cell?)
+    |> Enum.join(" ")
+  end
+
+  def board_cell_styles(cell, players, player_name, last_path) do
     {left, bottom} =
       cell.position
       |> Sternhalma.to_pixel()
       |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
 
-    {bg_color, border_color} = colors(marble_colors, cell.marble)
-
     step_index =
       Enum.find_index(last_path, fn path_cell -> path_cell.position == cell.position end)
 
-    base_styles = [
-      "--rotation: #{rotate(players, player_name) * -1}deg",
-      "left: #{left}px",
-      "bottom: #{bottom}px",
-      "background-color: #{bg_color}",
-      "border-color: #{border_color}"
-    ]
-
     [
-      {"--path-step: \"#{if step_index, do: step_index + 1}\"", step_index != nil},
-      {"color: #{text_color(bg_color)}", step_index != nil}
+      "--left:#{left}px",
+      "--bottom:#{bottom}px",
+      "--rotation: #{rotate(players, player_name) * -1}deg",
+      "color: #000000"
     ]
-    |> Enum.reduce(base_styles, fn {style, use?}, styles ->
-      if use?, do: [style | styles], else: styles
-    end)
+    |> add_if(fn -> "--path-step: \"#{step_index + 1}\"" end, step_index != nil)
     |> Enum.join(";")
   end
 
-  defp colors(marble_colors, marble) do
-    with {primary_color, secondary_color} <- Map.get(marble_colors, marble) do
-      {primary_color, secondary_color}
-    else
-      nil ->
-        {"#ffffff", "#999999"}
-    end
+  defp add_if(items, _item, false) do
+    items
   end
+
+  defp add_if(items, item, true) do
+    [item.() | items]
+  end
+
+  defp compute_step_index(path, _marble_position) when path == nil or length(path) == 0, do: nil
+
+  defp compute_step_index(path, marble_position) do
+    final_position = List.last(path).position
+
+    compute_step_index(final_position, marble_position, length(path))
+  end
+
+  defp compute_step_index(final_position, marble_position, path_length)
+       when final_position == marble_position,
+       do: path_length
+
+  defp compute_step_index(_final_position, _marble_position, _path_length), do: nil
 
   defp text_color(<<"#", hex_color::binary>>) do
     with {:ok, <<red, green, blue>>} <- Base.decode16(hex_color, case: :mixed) do
@@ -77,8 +108,6 @@ defmodule BoardGamesWeb.SternhalmaView do
         "#000000"
     end
   end
-
-  defp luminance(_hex_color), do: "#000000"
 
   @spec rotate(list(String.t()), String.t()) :: non_neg_integer()
   def rotate(players, player_name) do
@@ -112,10 +141,9 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Tuple.to_list()
   end
 
-  @doc """
-  Fit 2d point within a box of a dimension represented by size
-  """
   defp normalize({x, y}, size, min_x, max_x, min_y, max_y) do
+    # Fit 2d point within a box of a dimension represented by size
+
     # center
     x = x - (max_x - min_x) / 2
     y = y - (max_y - min_y) / 2

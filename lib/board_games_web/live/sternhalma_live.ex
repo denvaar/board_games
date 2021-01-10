@@ -46,7 +46,32 @@ defmodule BoardGamesWeb.SternhalmaLive do
     {:noreply, socket}
   end
 
-  def handle_event("marble-click", %{"cell_index" => index}, socket) do
+  def handle_event("marble-click", %{"marble_id" => marble_id}, socket) do
+    marble =
+      socket.assigns.game.marbles
+      |> Enum.find(&(&1.id === marble_id))
+
+    cell =
+      socket.assigns.game.board
+      |> Enum.find(&(&1.position == Sternhalma.from_pixel({marble.x, marble.y})))
+
+    start = Map.get(socket.assigns, :start)
+
+    if start do
+      with {:ok, game} <- GameState.move_marble(socket.assigns.game_id, start, cell) do
+        broadcast_game_state_update!(socket.assigns.game_id, game)
+      else
+        e ->
+          IO.inspect(e)
+      end
+
+      {:noreply, assign(socket, start: nil)}
+    else
+      {:noreply, assign(socket, start: cell)}
+    end
+  end
+
+  def handle_event("board-cell-click", %{"idx" => index}, socket) do
     cell =
       socket.assigns.game.board
       |> Enum.at(String.to_integer(index))
@@ -65,6 +90,8 @@ defmodule BoardGamesWeb.SternhalmaLive do
     else
       {:noreply, assign(socket, start: cell)}
     end
+
+    {:noreply, assign(socket, start: nil)}
   end
 
   @impl true
@@ -82,10 +109,6 @@ defmodule BoardGamesWeb.SternhalmaLive do
     |> ensure_game_process_exists()
     |> subscribe_to_updates()
     |> ensure_player_joins(player_name)
-  end
-
-  defp topic(game_id) do
-    "sternhalma:#{game_id}"
   end
 
   defp monitor_live_view_process(game_id, player_name) do
@@ -108,10 +131,7 @@ defmodule BoardGamesWeb.SternhalmaLive do
   end
 
   defp subscribe_to_updates({:ok, game_id}) do
-    game_id
-    |> topic()
-    |> BoardGamesWeb.Endpoint.subscribe()
-
+    BoardGames.PubSub.subscribe_to_game_updates(game_id)
     game_id
   end
 
@@ -121,8 +141,6 @@ defmodule BoardGamesWeb.SternhalmaLive do
   end
 
   defp broadcast_game_state_update!(game_id, game) do
-    game_id
-    |> topic()
-    |> BoardGamesWeb.Endpoint.broadcast!("game_state_update", game)
+    BoardGames.PubSub.broadcast_game_update!(game_id, game)
   end
 end

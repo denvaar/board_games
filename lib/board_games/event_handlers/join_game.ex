@@ -1,0 +1,81 @@
+defmodule BoardGames.EventHandlers.JoinGame do
+  @moduledoc """
+  Logic concerned with updating game state in
+  response to a new player joining.
+  """
+
+  alias BoardGames.{SternhalmaAdapter, GameState, MarbleColors}
+
+  defmodule IncomingPlayerInfo do
+    @enforce_keys [:id, :exists_already]
+    defstruct [:id, :exists_already]
+
+    @type t :: %IncomingPlayerInfo{
+            id: String.t(),
+            exists_already: boolean()
+          }
+  end
+
+  @spec handle({String.t()}, GameState.game_state()) ::
+          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  def handle({player_name}, state) do
+    %IncomingPlayerInfo{
+      id: player_name,
+      exists_already: !!Enum.find(existing_players(state.players), &(&1 == player_name))
+    }
+    |> add_player_to_game(state.status, state)
+  end
+
+  @spec add_player_to_game(IncomingPlayerInfo.t(), GameState.game_status(), GameState.t()) ::
+          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  defp add_player_to_game(
+         %IncomingPlayerInfo{id: player_name, exists_already: false},
+         :setup,
+         state
+       ) do
+    {:ok, board} = SternhalmaAdapter.setup_marbles(state.board, player_name)
+
+    marble_colors = assign_color(player_name, state.marble_colors)
+
+    default_colors = {"#000000", "#000000"}
+    colors = Map.get(marble_colors, player_name, default_colors)
+
+    marbles =
+      SternhalmaAdapter.marbles_from_cells(
+        board,
+        player_name,
+        colors
+      )
+
+    new_state = %{
+      state
+      | board: board,
+        marbles: marbles ++ state.marbles,
+        players: [player_name | state.players],
+        marble_colors: marble_colors
+    }
+
+    {:ok, new_state}
+  end
+
+  defp add_player_to_game(_, _, state) do
+    {:error, {:unsupported, state}}
+  end
+
+  @spec existing_players(list(String.t())) :: list(String.t())
+  defp existing_players([_ | _] = existing_players), do: existing_players
+  defp existing_players(_), do: []
+
+  @spec assign_color(String.t(), Map.t()) :: Map.t()
+  defp assign_color(player_name, marble_colors) do
+    with [first_available_color | _] <-
+           marble_colors
+           |> Map.values()
+           |> MarbleColors.available_colors() do
+      Map.put(marble_colors, player_name, first_available_color)
+    else
+      _ ->
+        marble_colors
+    end
+  end
+end
