@@ -7,6 +7,11 @@ html {
         Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 1.25rem;
 }
+
+body {
+    margin: 0;
+}
+
 *,
 *:before,
 *:after {
@@ -34,15 +39,21 @@ input {
 }
 
 .button {
+    margin-bottom: 20px;
+    cursor: pointer;
     font-size: 0.8rem;
     padding: 12px;
-    padding-left: 22px;
-    padding-right: 22px;
-    background: gray;
-    border: none;
+    padding-left: 25px;
+    padding-right: 25px;
+    background: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
     border-radius: 4px;
-    color: white;
-    background: royalblue;
+
+    &:disabled {
+        color: #777;
+        border-color: #777777;
+    }
 }
 
 /* LiveView specific classes for your customizations */
@@ -132,7 +143,48 @@ input {
     margin: -1rem 0 2rem;
 }
 
+.join-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .ui-button {
+        width: 100%;
+        font-size: 0.8rem;
+        padding: 12px;
+        padding-left: 25px;
+        padding-right: 25px;
+        background: royalblue;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+
+        &:disabled {
+            color: #777;
+            border-color: #777777;
+        }
+    }
+}
+
 /* --------------------- */
+
+:root {
+    --path-step: "";
+    --rotation: "0deg";
+    --left: "0px";
+    --bottom: "0px";
+    --bgc: "#000000";
+    --bc: "#000000";
+}
+
+.center-flex-container {
+    padding-top: 30px;
+    padding-bottom: 30px;
+
+    background: black;
+
+    height: 100vh;
+}
 
 %common-cell {
     position: absolute;
@@ -146,22 +198,33 @@ input {
 }
 
 .board-container {
-    --path-step: "";
-    --rotation: "0deg";
-    --left: "0px";
-    --bottom: "0px";
-    --bgc: "#000000";
-    --bc: "#000000";
-
+    margin: 0 auto;
     position: relative;
-    height: 450px;
-    width: 450px;
+    height: 460px;
+    width: 460px;
+    top: calc(50% - 230px);
+    border: 3px solid #655747;
+    border-radius: 50%;
+
+    &::before {
+        content: "";
+        background: url("/images/dragon.png");
+        background-color: bisque;
+        background-size: cover;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 50%;
+        opacity: 0.25;
+    }
 
     .board-cell {
         @extend %common-cell;
 
-        border-color: #999;
-        background-color: #ebebeb;
+        border-color: #655747;
+        background-color: #000;
         transition: transform 0.2s ease-in;
     }
 
@@ -185,6 +248,7 @@ input {
     }
 
     .path {
+        z-index: 10;
         font-size: 16px;
         text-align: center;
         font-family: monospace;
@@ -206,34 +270,40 @@ input {
     }
 }
 
-.scoreboard {
-    ul {
-        list-style: none;
-        padding-left: 0;
+.game-info {
+    position: absolute;
+    font-size: 14px;
+    margin-left: 10px;
 
-        li {
-            display: flex;
-            align-items: center;
-            margin: 0;
-            padding-bottom: 3px;
-            padding-top: 3px;
-            border-top: 1px solid #999;
+    .player {
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
 
-            &:last-child {
-                border-bottom: 1px solid #999;
-            }
-
-            .turn-indicator {
-                margin-left: 10px;
-            }
-
-            .marble {
-                margin-right: 10px;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                border: 2px solid;
-            }
+        .player-name {
+            color: #ffffff;
         }
+    }
+
+    .player-marble {
+        width: 25px;
+        height: 25px;
+        border: 3px solid;
+        border-radius: 50%;
+
+        border-color: var(--bc);
+        background-color: var(--bgc);
+
+        opacity: 0.5;
+    }
+
+    .highlight {
+        opacity: 1;
+        box-shadow: 0 0 2px 2px var(--bgc);
+    }
+
+    .countdown {
+        color: firebrick;
+        align-items: center;
     }
 }

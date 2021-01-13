@@ -1,21 +1,24 @@
-<h1 class="text-xl">Sternhalma</h1>
-<%= form_for @conn, Routes.play_game_path(@conn, :create), fn f -> %>
+<div class="join-form m-1">
+  <img width="200" src="<%= Routes.static_path(@conn, "/images/dragon.png") %>" />
+  <h1 class="text-xl">Sternhalma</h1>
+  <%= form_for @conn, Routes.play_game_path(@conn, :create), fn f -> %>
 
-  <div class="m-1">
-    <label>
-      <div class="input-label">Game code</div>
-      <%= text_input f, :game_id, class: "text-input" %>
-    </label>
-  </div>
+    <div class="m-1">
+      <label>
+        <div class="input-label">Game code</div>
+        <%= text_input f, :game_id, class: "text-input" %>
+      </label>
+    </div>
 
-  <div class="m-1">
-    <label>
-      <div class="input-label">Name</div>
-      <%= text_input f, :player_name, class: "text-input" %>
-    </label>
-  </div>
+    <div class="m-1">
+      <label>
+        <div class="input-label">Name</div>
+        <%= text_input f, :player_name, class: "text-input" %>
+      </label>
+    </div>
 
-  <div class="m-1">
-    <%= submit "Join game", class: "button" %>
-  </div>
-<% end %>
+    <div class="m-1">
+      <%= submit "Join game", class: "ui-button" %>
+    </div>
+  <% end %>
+</div>

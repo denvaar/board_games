@@ -1,13 +1,26 @@
-<div class="scoreboard">
-  <h3>Players</h3>
-  <ul>
-    <%= for player <- @game.players do %>
-      <li>
-        <span style="color:<%= color(@game.marble_colors, player) %>;background-color: <%= background_color(@game.marble_colors, player) %>;" class="marble"></span><%= player %>
+<div class="game-info">
+  <%= if @game.status == :setup do %>
+    <div>
+      <%= if length(@game.players) > 1 do %>
+        <button phx-click="start-game" class="button">Play</button>
+      <% else %>
+        <button disabled title="At least two players required before starting" class="button">Play</button>
+      <% end %>
+    </div>
+  <% end %>
+  <%= for player <- @game.players do %>
+
+    <div>
+      <div class="player">
+        <div class="<%= player_classes(@game, player) %>" style="<%= player_styles(@game, player) %>"></div>
+        <div class="player-name">&nbsp;&nbsp;<%= player %></div>
         <%= if @game.turn == player do %>
-          <span class="turn-indicator">✋</span>
+          <div class="countdown">&nbsp;&nbsp;⏱  0:10</div>
         <% end %>
-      </li>
-    <% end %>
-  </ul>
+      </div>
+      <%= if @game.turn == player  do %>
+      <% end %>
+    </div>
+
+  <% end %>
 </div>

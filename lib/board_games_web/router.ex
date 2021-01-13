@@ -17,10 +17,7 @@ defmodule BoardGamesWeb.Router do
   scope "/", BoardGamesWeb do
     pipe_through :browser
 
-    live "/", PageLive, :index
-    # live "/sternhalma/:game_id", SternhalmaLive, :index
-
-    # get "/play/:game_id", PlayGameController, :show
+    get "/", PlayGameController, :new
     get "/play", PlayGameController, :new
     post "/play", PlayGameController, :create
     get "/play/:game_id", PlayGameController, :show
