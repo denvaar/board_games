@@ -1,12 +1,28 @@
 defmodule BoardGamesWeb.SternhalmaView do
   use BoardGamesWeb, :view
 
-  @board_size 485
+  @board_size 465
   @min_x -0.39230484541326227
   @max_x 20.392304845413264
   @max_x 23
   @min_y 0
   @max_y 27
+
+  def player_styles(game, player) do
+    bg_color = background_color(game.marble_colors, player)
+
+    [
+      "--bgc:#{bg_color}",
+      "--bc:#{color(game.marble_colors, player)}"
+    ]
+    |> Enum.join(";")
+  end
+
+  def player_classes(game, player) do
+    ["player-marble"]
+    |> add_if(fn -> "highlight" end, game.turn == player)
+    |> Enum.join(" ")
+  end
 
   def marble_css_classes(is_turn, marble_owner, player_name, start, marble, last_path) do
     marble_position = Sternhalma.from_pixel({marble.x, marble.y})
@@ -67,7 +83,7 @@ defmodule BoardGamesWeb.SternhalmaView do
       "--left:#{left}px",
       "--bottom:#{bottom}px",
       "--rotation: #{rotate(players, player_name) * -1}deg",
-      "color: #000000"
+      "color: #ffffff"
     ]
     |> add_if(fn -> "--path-step: \"#{step_index + 1}\"" end, step_index != nil)
     |> Enum.join(";")
@@ -150,8 +166,8 @@ defmodule BoardGamesWeb.SternhalmaView do
 
     # scale
     scale = max(max_x - min_x, max_y - min_y)
-    x = x / scale * size
-    y = y / scale * size
+    x = x / scale * size + 12
+    y = y / scale * size - 10
 
     x = round(x + size / 2)
     y = round(y + size / 2)
