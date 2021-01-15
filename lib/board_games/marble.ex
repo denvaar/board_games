@@ -1,12 +1,12 @@
 defmodule BoardGames.Marble do
   @moduledoc """
-  Represents a marble.
+  Struct to represent a marble.
   """
 
   alias __MODULE__
 
   @enforce_keys [:id, :belongs_to, :bg_color, :border_color, :x, :y]
-  defstruct [:id, :belongs_to, :bg_color, :border_color, :x, :y]
+  defstruct @enforce_keys
 
   @type t :: %Marble{
           id: String.t(),

@@ -1,5 +1,12 @@
 defmodule BoardGamesWeb.SternhalmaView do
+  @moduledoc """
+  Functions that are intended to be called from templates to
+  help render content, CSS, etc.
+  """
+
   use BoardGamesWeb, :view
+
+  alias BoardGames.{Marble, GameState}
 
   @board_size 465
   @min_x -0.39230484541326227
@@ -19,6 +26,7 @@ defmodule BoardGamesWeb.SternhalmaView do
     "00:#{formatted_seconds}"
   end
 
+  @spec player_styles(GameState.t(), String.t()) :: String.t()
   def player_styles(game, player) do
     bg_color = background_color(game.marble_colors, player)
 
@@ -29,6 +37,7 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(";")
   end
 
+  @spec player_classes(GameState.t(), String.t()) :: String.t()
   def player_classes(game, player) do
     is_turn = game.status == :playing and game.turn == player
 
@@ -37,6 +46,8 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(" ")
   end
 
+  @spec marble_css_classes(GameState.t(), String.t(), String.t(), Sternhalma.Cell.t(), Marble.t()) ::
+          String.t()
   def marble_css_classes(game, marble_owner, player_name, start, marble) do
     is_turn = game.status == :playing and game.turn == player_name
     last_path = game.last_move
@@ -54,6 +65,8 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(" ")
   end
 
+  @spec marble_styles(Marble.t(), list(String.t()), String.t(), list(Sternhalma.Cell.t())) ::
+          String.t()
   def marble_styles(marble, players, player_name, last_path) do
     {left, bottom} =
       {marble.x, marble.y}
@@ -75,6 +88,13 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(";")
   end
 
+  @spec board_cell_css_classes(
+          GameState.t(),
+          String.t(),
+          Sternhalma.Cell.t(),
+          Sternhalma.Cell.t(),
+          list(Sternhalma.Cell.t())
+        ) :: String.t()
   def board_cell_css_classes(game, player_name, start, cell, last_path) do
     is_turn? = game.turn == player_name and game.status == :playing
 
@@ -88,6 +108,12 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(" ")
   end
 
+  @spec board_cell_styles(
+          Sternhalma.Cell.t(),
+          list(String.t()),
+          String.t(),
+          list(Sternhalma.Cell.t())
+        ) :: String.t()
   def board_cell_styles(cell, players, player_name, last_path) do
     {left, bottom} =
       cell.position
@@ -107,6 +133,19 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(";")
   end
 
+  @spec background_color(map(), String.t()) :: String.t()
+  def background_color(colors, player_name) do
+    color_helper(colors, player_name)
+    |> Enum.at(0)
+  end
+
+  @spec color(map(), String.t()) :: String.t()
+  def color(colors, player_name) do
+    color_helper(colors, player_name)
+    |> Enum.at(1)
+  end
+
+  @spec add_if(list(term()), term(), boolean()) :: list(term())
   defp add_if(items, _item, false) do
     items
   end
@@ -115,6 +154,8 @@ defmodule BoardGamesWeb.SternhalmaView do
     [item.() | items]
   end
 
+  @spec compute_step_index(list(Sternhalma.Cell.t()), Sternhalma.Hex.t()) ::
+          nil | non_neg_integer()
   defp compute_step_index(path, _marble_position) when path == nil or length(path) == 0, do: nil
 
   defp compute_step_index(path, marble_position) do
@@ -129,6 +170,7 @@ defmodule BoardGamesWeb.SternhalmaView do
 
   defp compute_step_index(_final_position, _marble_position, _path_length), do: nil
 
+  @spec text_color(String.t()) :: String.t()
   defp text_color(<<"#", hex_color::binary>>) do
     with {:ok, <<red, green, blue>>} <- Base.decode16(hex_color, case: :mixed) do
       if red * 0.299 + green * 0.587 + blue * 0.114 > 186 do
@@ -151,6 +193,7 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> rotation()
   end
 
+  @spec rotation(non_neg_integer()) :: non_neg_integer()
   defp rotation(0), do: 180
   defp rotation(1), do: 0
   defp rotation(2), do: 240
@@ -159,22 +202,15 @@ defmodule BoardGamesWeb.SternhalmaView do
   defp rotation(5), do: 300
   defp rotation(_player_index), do: 0
 
-  def background_color(colors, player_name) do
-    color_helper(colors, player_name)
-    |> Enum.at(0)
-  end
-
-  def color(colors, player_name) do
-    color_helper(colors, player_name)
-    |> Enum.at(1)
-  end
-
+  @spec color_helper(map(), String.t()) :: list({String.t(), String.t()})
   defp color_helper(colors, player_name) do
     colors
     |> Map.get(player_name)
     |> Tuple.to_list()
   end
 
+  @spec normalize({number(), number()}, non_neg_integer(), number(), number(), number(), number()) ::
+          {integer(), integer()}
   defp normalize({x, y}, size, min_x, max_x, min_y, max_y) do
     # Fit 2d point within a box of a dimension represented by size
 

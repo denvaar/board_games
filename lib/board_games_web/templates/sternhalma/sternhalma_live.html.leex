@@ -2,7 +2,7 @@
 
   <div class="center-flex-container">
 
-    <%= render("_players.html", game: @game) %>
+    <%= render("_players.html", game: @game, player: Map.get(assigns, :player_name)) %>
 
     <%= render("_messages.html", game: @game, message: @message) %>
 

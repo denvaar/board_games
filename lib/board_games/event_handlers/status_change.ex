@@ -6,16 +6,16 @@ defmodule BoardGames.EventHandlers.StatusChange do
 
   alias BoardGames.GameState
 
-  @spec handle({GameState.game_status()}, GameState.game_state()) ::
-          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  @spec handle({GameState.game_status()}, GameState.t()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({status}, state) do
     state
     |> change_game_status(status)
     |> perform_side_effects(status)
   end
 
-  @spec change_game_status(GameState.game_state(), GameState.game_status()) ::
-          {:ok | :error, GameState.game_state()}
+  @spec change_game_status(GameState.t(), GameState.game_status()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp change_game_status(game_state, :playing)
        when length(game_state.players) > 1 and game_state.status == :setup,
        do: {:ok, %{game_state | status: :playing}}
@@ -23,10 +23,13 @@ defmodule BoardGames.EventHandlers.StatusChange do
   defp change_game_status(game_state, :over) when game_state.status == :playing,
     do: {:ok, %{game_state | status: :over}}
 
-  defp change_game_status(game_state, _), do: {:error, game_state}
+  defp change_game_status(game_state, _), do: {:error, {:invalid_transition, game_state}}
 
-  @spec perform_side_effects({:ok | :error, GameState.game_state()}, GameState.game_status()) ::
-          {:ok | :error, GameState.game_state()}
+  @spec perform_side_effects(
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}},
+          GameState.game_status()
+        ) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp perform_side_effects({:ok, game_state}, :playing) do
     {:ok,
      %{
@@ -48,8 +51,9 @@ defmodule BoardGames.EventHandlers.StatusChange do
   end
 
   defp perform_side_effects({:ok, game_state}, _), do: {:ok, game_state}
-  defp perform_side_effects({:error, game_state}, _), do: {:error, game_state}
+  defp perform_side_effects({:error, {code, game_state}}, _), do: {:error, {code, game_state}}
 
+  @spec start_turn_timer(nil | reference()) :: reference()
   defp start_turn_timer(nil) do
     Process.send_after(
       self(),
@@ -60,6 +64,7 @@ defmodule BoardGames.EventHandlers.StatusChange do
 
   defp start_turn_timer(ref), do: ref
 
+  @spec cancel_tick_timer(nil | reference()) :: nil | reference()
   defp cancel_tick_timer(nil), do: nil
   defp cancel_tick_timer(ref), do: Process.cancel_timer(ref)
 end

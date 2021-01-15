@@ -6,8 +6,8 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
 
   alias BoardGames.{Marble, Helpers, GameState, EventHandlers, SternhalmaAdapter}
 
-  @spec handle({Hex.t(), list(Cell.t())}, GameState.game_state()) ::
-          {:ok, GameState.game_state()}
+  @spec handle({Sternhalma.Hex.t(), list(Sternhalma.Cell.t())}, GameState.t()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({_current_position, []}, state) do
     winner = SternhalmaAdapter.winner(state.board)
 
@@ -63,6 +63,8 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
     {:ok, new_state}
   end
 
+  @spec update_marble_position(list(Marble.t()), Sternhalma.Hex.t(), Sternhalma.Hex.t()) ::
+          list(Marble.t())
   defp update_marble_position(marbles, current_position, target_position) do
     {x, y} = Sternhalma.to_pixel(target_position)
 
@@ -78,8 +80,8 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
     end)
   end
 
-  @spec change_game_status(nil | String.t(), GameState.game_state()) ::
-          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  @spec change_game_status(nil | String.t(), GameState.t()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp change_game_status(nil, state), do: {:ok, state}
   defp change_game_status(_winner, state), do: EventHandlers.StatusChange.handle({:over}, state)
 
