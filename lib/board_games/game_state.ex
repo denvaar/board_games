@@ -5,7 +5,9 @@ defmodule BoardGames.GameState do
 
   use GenServer, restart: :transient
 
-  alias BoardGames.{Marble, EventHandlers}
+  alias BoardGames.{Marble, Helpers, EventHandlers}
+
+  @time_limit_seconds 10
 
   @type game_status :: :setup | :playing | :over
 
@@ -54,10 +56,12 @@ defmodule BoardGames.GameState do
       status: :setup,
       turn: nil,
       timer_ref: nil,
+      turn_timer_ref: nil,
       winner: nil,
       last_move: [],
       players: [],
-      marble_colors: %{}
+      marble_colors: %{},
+      seconds_remaining: 0
     }
 
     {:ok, initial_state}
@@ -101,16 +105,6 @@ defmodule BoardGames.GameState do
   end
 
   @impl true
-  def handle_info({:advance_marble_along_path, current_position, []}, state) do
-    {:ok, new_state} =
-      EventHandlers.AdvanceMarble.handle(
-        {current_position, []},
-        state
-      )
-
-    {:noreply, new_state}
-  end
-
   def handle_info({:advance_marble_along_path, current_position, path}, state) do
     {:ok, new_state} =
       EventHandlers.AdvanceMarble.handle(
@@ -119,6 +113,43 @@ defmodule BoardGames.GameState do
       )
 
     {:noreply, new_state}
+  end
+
+  def handle_info({:tick, seconds_elapsed, :keep_turn}, state) do
+    new_state = tick(seconds_elapsed, state)
+
+    BoardGames.PubSub.broadcast_game_update!(state.id, new_state)
+
+    {:noreply, new_state}
+  end
+
+  def handle_info({:tick, seconds_elapsed, _}, state) do
+    new_state = tick(seconds_elapsed, state)
+
+    turn =
+      if new_state.seconds_remaining == 0,
+        do: Helpers.next_turn(state.turn, state.players),
+        else: state.turn
+
+    new_state = %{new_state | turn: turn}
+
+    BoardGames.PubSub.broadcast_game_update!(state.id, new_state)
+
+    {:noreply, new_state}
+  end
+
+  @spec tick(pos_integer(), game_state()) :: game_state()
+  defp tick(seconds_elapsed, state) do
+    seconds = rem(seconds_elapsed + 1, @time_limit_seconds)
+
+    ref =
+      Process.send_after(
+        self(),
+        {:tick, seconds, nil},
+        1_000
+      )
+
+    %{state | turn_timer_ref: ref, seconds_remaining: seconds}
   end
 
   defp via(game_id) do

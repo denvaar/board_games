@@ -1,0 +1,9 @@
+<div class="messages">
+  <%= if @game.status == :over and @game.winner != nil  do %>
+    <h3>🏆 <%= @game.winner %> wins!</h3>
+  <% end %>
+
+  <%= if @message != nil do %>
+    <h3 class="vanish"><%= @message %></h3>
+  <% end %>
+</div>

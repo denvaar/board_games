@@ -18,7 +18,14 @@ defmodule BoardGamesWeb.SternhalmaLive do
       end
     end
 
-    {:ok, assign(socket, game: nil, game_id: game_id, player_name: player_name, start: nil)}
+    {:ok,
+     assign(socket,
+       game: nil,
+       game_id: game_id,
+       message: nil,
+       player_name: player_name,
+       start: nil
+     )}
   end
 
   def unmount(_reason, %{player_id: player_id, game_id: game_id}) do
@@ -79,24 +86,28 @@ defmodule BoardGamesWeb.SternhalmaLive do
     start = Map.get(socket.assigns, :start)
 
     if start do
-      with {:ok, game} <- GameState.move_marble(socket.assigns.game_id, start, cell) do
-        broadcast_game_state_update!(socket.assigns.game_id, game)
-      else
-        e ->
-          IO.inspect(e)
-      end
+      message =
+        with {:ok, game} <- GameState.move_marble(socket.assigns.game_id, start, cell) do
+          broadcast_game_state_update!(socket.assigns.game_id, game)
+          nil
+        else
+          {:error, code, _state} ->
+            message_for_code(code)
+        end
 
-      {:noreply, assign(socket, start: nil)}
+      {:noreply, assign(socket, start: nil, message: message)}
     else
       {:noreply, assign(socket, start: cell)}
     end
-
-    {:noreply, assign(socket, start: nil)}
   end
 
   @impl true
   def handle_info(%{event: "game_state_update", payload: game}, socket) do
-    {:noreply, assign(socket, game: game)}
+    {:noreply,
+     assign(socket,
+       game: game,
+       start: update_marble_selection(game.seconds_remaining, socket.assigns.start)
+     )}
   end
 
   #
@@ -143,4 +154,10 @@ defmodule BoardGamesWeb.SternhalmaLive do
   defp broadcast_game_state_update!(game_id, game) do
     BoardGames.PubSub.broadcast_game_update!(game_id, game)
   end
+
+  defp message_for_code(:no_path), do: "Cannot move there."
+  defp message_for_code(_), do: "??? wat"
+
+  defp update_marble_selection(0, selection_start), do: nil
+  defp update_marble_selection(_seconds_remaining, selection_start), do: selection_start
 end
