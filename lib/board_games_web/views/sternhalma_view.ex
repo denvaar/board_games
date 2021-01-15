@@ -8,6 +8,17 @@ defmodule BoardGamesWeb.SternhalmaView do
   @min_y 0
   @max_y 27
 
+  @spec format_countdown(integer()) :: String.t()
+  def format_countdown(seconds) do
+    formatted_seconds =
+      (seconds - 10)
+      |> abs()
+      |> Integer.to_string()
+      |> String.pad_leading(2, "0")
+
+    "00:#{formatted_seconds}"
+  end
+
   def player_styles(game, player) do
     bg_color = background_color(game.marble_colors, player)
 
@@ -19,12 +30,17 @@ defmodule BoardGamesWeb.SternhalmaView do
   end
 
   def player_classes(game, player) do
+    is_turn = game.status == :playing and game.turn == player
+
     ["player-marble"]
-    |> add_if(fn -> "highlight" end, game.turn == player)
+    |> add_if(fn -> "highlight" end, is_turn)
     |> Enum.join(" ")
   end
 
-  def marble_css_classes(is_turn, marble_owner, player_name, start, marble, last_path) do
+  def marble_css_classes(game, marble_owner, player_name, start, marble) do
+    is_turn = game.status == :playing and game.turn == player_name
+    last_path = game.last_move
+
     marble_position = Sternhalma.from_pixel({marble.x, marble.y})
 
     path_includes_marble? =
@@ -59,13 +75,15 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(";")
   end
 
-  def board_cell_css_classes(is_turn, start, cell, last_path) do
+  def board_cell_css_classes(game, player_name, start, cell, last_path) do
+    is_turn? = game.turn == player_name and game.status == :playing
+
     path_includes_cell? =
       last_path != nil and
         Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end)
 
     ["board-cell"]
-    |> add_if(fn -> "clicked" end, is_turn and start != nil)
+    |> add_if(fn -> "clicked" end, is_turn? and start != nil)
     |> add_if(fn -> "path" end, path_includes_cell?)
     |> Enum.join(" ")
   end

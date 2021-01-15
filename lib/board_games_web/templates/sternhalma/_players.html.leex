@@ -1,5 +1,7 @@
 <div class="game-info">
+
   <%= if @game.status == :setup do %>
+
     <div>
       <%= if length(@game.players) > 1 do %>
         <button phx-click="start-game" class="button">Play</button>
@@ -7,19 +9,19 @@
         <button disabled title="At least two players required before starting" class="button">Play</button>
       <% end %>
     </div>
+
   <% end %>
+
   <%= for player <- @game.players do %>
 
     <div>
       <div class="player">
         <div class="<%= player_classes(@game, player) %>" style="<%= player_styles(@game, player) %>"></div>
         <div class="player-name">&nbsp;&nbsp;<%= player %></div>
-        <%= if @game.turn == player do %>
-          <div class="countdown">&nbsp;&nbsp;⏱  0:10</div>
+        <%= if @game.turn == player and @game.status == :playing and @game.turn_timer_ref != nil do %>
+          <div class="countdown">&nbsp;&nbsp;⏱  <%= format_countdown(@game.seconds_remaining) %></div>
         <% end %>
       </div>
-      <%= if @game.turn == player  do %>
-      <% end %>
     </div>
 
   <% end %>

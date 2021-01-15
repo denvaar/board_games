@@ -1,11 +1,11 @@
 <%= if @game do %>
-  <%= if @game.status == :over do %>
-    <%= render("_game_over.html", winnner: @game.winner) %>
-  <% end %>
-
 
   <div class="center-flex-container">
+
     <%= render("_players.html", game: @game) %>
+
+    <%= render("_messages.html", game: @game, message: @message) %>
+
     <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg);">
 
       <%= for {cell, index} <- Enum.with_index(@game.board) do %>
@@ -15,7 +15,7 @@
             phx-value-idx="<%= index %>"
           <% end %>
             style="<%= board_cell_styles(cell, @game.players, @player_name, @game.last_move) %>"
-            class="<%= board_cell_css_classes(@game.turn == @player_name, @start, cell, @game.last_move) %>">
+            class="<%= board_cell_css_classes(@game, @player_name, @start, cell, @game.last_move) %>">
         </div>
       <% end %>
 
@@ -27,7 +27,7 @@
             phx-click="marble-click"
             phx-value-marble_id="<%= marble.id %>"
           <% end %>
-            class="<%= marble_css_classes(@game.turn == @player_name, marble.belongs_to, @player_name, @start, marble, @game.last_move) %>"
+            class="<%= marble_css_classes(@game, marble.belongs_to, @player_name, @start, marble) %>"
             style="<%= marble_styles(marble, @game.players, @player_name, @game.last_move) %>">
         </div>
 

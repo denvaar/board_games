@@ -307,3 +307,28 @@ input {
         align-items: center;
     }
 }
+
+.messages {
+    position: absolute;
+    top: 25px;
+    left: calc(50% - 125px);
+    color: #ffffff;
+
+    h3 {
+        width: 250px;
+        text-align: center;
+    }
+
+    .vanish {
+        animation: goAway 0.5s ease-in 1.5s forwards;
+    }
+}
+
+@keyframes goAway {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}

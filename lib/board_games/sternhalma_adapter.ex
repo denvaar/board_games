@@ -24,4 +24,6 @@ defmodule BoardGames.SternhalmaAdapter do
   end
 
   defdelegate setup_marbles(board, player_name), to: Sternhalma
+
+  defdelegate winner(board), to: Sternhalma
 end

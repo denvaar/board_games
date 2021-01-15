@@ -4,20 +4,34 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
   position along a path.
   """
 
-  alias BoardGames.{Marble, GameState}
+  alias BoardGames.{Marble, Helpers, GameState, EventHandlers, SternhalmaAdapter}
 
   @spec handle({Hex.t(), list(Cell.t())}, GameState.game_state()) ::
           {:ok, GameState.game_state()}
   def handle({_current_position, []}, state) do
-    new_state = %{
-      state
-      | timer_ref: nil,
-        turn: next_turn(state.turn, state.players)
-    }
+    winner = SternhalmaAdapter.winner(state.board)
 
-    BoardGames.PubSub.broadcast_game_update!(state.id, new_state)
+    with {:ok, new_state} <- change_game_status(winner, state) do
+      ref =
+        Process.send_after(
+          self(),
+          {:tick, 0, :keep_turn},
+          1_000
+        )
 
-    {:ok, new_state}
+      new_state = %{
+        new_state
+        | timer_ref: nil,
+          winner: winner,
+          turn_timer_ref: ref,
+          seconds_remaining: 0,
+          turn: Helpers.next_turn(state.turn, state.players)
+      }
+
+      BoardGames.PubSub.broadcast_game_update!(state.id, new_state)
+
+      {:ok, new_state}
+    end
   end
 
   def handle({current_position, [next_spot | path]}, state) do
@@ -35,29 +49,18 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
         500
       )
 
+    cancel_tick_timer(state.turn_timer_ref)
+
     new_state = %{
       state
       | timer_ref: timer_ref,
+        turn_timer_ref: nil,
         marbles: marbles
     }
 
     BoardGames.PubSub.broadcast_game_update!(state.id, new_state)
 
     {:ok, new_state}
-  end
-
-  @spec next_turn(String.t(), list(String.t())) :: String.t()
-  defp next_turn(turn, players) do
-    next_player_index =
-      case Enum.find_index(players, &(&1 == turn)) do
-        nil ->
-          0
-
-        current_player_index ->
-          rem(current_player_index + 1, length(players))
-      end
-
-    Enum.at(players, next_player_index)
   end
 
   defp update_marble_position(marbles, current_position, target_position) do
@@ -68,14 +71,19 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
       position = Sternhalma.from_pixel({marble.x, marble.y})
 
       if position == current_position do
-        %Marble{
-          marble
-          | x: Float.round(x, 3),
-            y: Float.round(y, 3)
-        }
+        %Marble{marble | x: Float.round(x, 3), y: Float.round(y, 3)}
       else
         marble
       end
     end)
   end
+
+  @spec change_game_status(nil | String.t(), GameState.game_state()) ::
+          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  defp change_game_status(nil, state), do: {:ok, state}
+  defp change_game_status(_winner, state), do: EventHandlers.StatusChange.handle({:over}, state)
+
+  @spec cancel_tick_timer(nil | reference()) :: non_neg_integer() | false | :ok
+  defp cancel_tick_timer(nil), do: false
+  defp cancel_tick_timer(ref), do: Process.cancel_timer(ref)
 end
