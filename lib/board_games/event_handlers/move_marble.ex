@@ -4,7 +4,9 @@ defmodule BoardGames.EventHandlers.MoveMarble do
   from one position to another.
   """
 
-  @spec handle({Cell.t(), Cell.t()}, GameState.t()) ::
+  alias BoardGames.GameState
+
+  @spec handle({Sternhalma.Cell.t(), Sternhalma.Cell.t()}, GameState.t()) ::
           {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({start, finish}, state) do
     move_marble(
@@ -13,7 +15,8 @@ defmodule BoardGames.EventHandlers.MoveMarble do
     )
   end
 
-  @spec move_marble({boolean(), Cell.t(), Cell.t()}, GameState.t()) :: GameState.t()
+  @spec move_marble({boolean(), Sternhalma.Cell.t(), Sternhalma.Cell.t()}, GameState.t()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp move_marble({true, start, finish}, state) do
     path = Sternhalma.find_path(state.board, start, finish)
 

@@ -1,4 +1,11 @@
 defmodule BoardGames.MarbleColors do
+  @moduledoc """
+  Module to define color constants for the marbles.
+
+  Marbles have a primary color, used for the background.
+  Also a secondary color, used for the boarder.
+  """
+
   @primary_blue "#6292e9"
   @primary_green "#44ae64"
   @primary_orange "#f3734b"
@@ -13,17 +20,6 @@ defmodule BoardGames.MarbleColors do
   @secondary_purple "#573e84"
   @secondary_red "#9e3458"
 
-  def all_colors() do
-    [
-      Blue: @primary_blue,
-      Green: @primary_green,
-      Orange: @primary_orange,
-      Gold: @primary_gold,
-      Purple: @primary_purple,
-      Red: @primary_red
-    ]
-  end
-
   @spec available_colors(list({String.t(), String.t()})) :: list({String.t(), String.t()})
   def available_colors(to_be_excluded) do
     [
@@ -35,16 +31,5 @@ defmodule BoardGames.MarbleColors do
       {@primary_red, @secondary_red}
     ] --
       to_be_excluded
-  end
-
-  def all_secondary_colors() do
-    [
-      @secondary_blue,
-      @secondary_green,
-      @secondary_orange,
-      @secondary_gold,
-      @secondary_purple,
-      @secondary_red
-    ]
   end
 end

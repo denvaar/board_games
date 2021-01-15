@@ -12,6 +12,12 @@
 
   <% end %>
 
+  <%= if Enum.find(@game.players, & &1 == @player) == nil do %>
+    <div class="player">
+      <p class="player-name"><i>This game already started -- you are only allowed to watch 👀</i></p>
+    </div>
+  <% end %>
+
   <%= for player <- @game.players do %>
 
     <div>

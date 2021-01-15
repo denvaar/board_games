@@ -16,8 +16,8 @@ defmodule BoardGames.EventHandlers.JoinGame do
           }
   end
 
-  @spec handle({String.t()}, GameState.game_state()) ::
-          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+  @spec handle({String.t()}, GameState.t()) ::
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({player_name}, state) do
     %IncomingPlayerInfo{
       id: player_name,
@@ -27,7 +27,7 @@ defmodule BoardGames.EventHandlers.JoinGame do
   end
 
   @spec add_player_to_game(IncomingPlayerInfo.t(), GameState.game_status(), GameState.t()) ::
-          {:ok, GameState.game_state()} | {:error, {atom(), GameState.game_state()}}
+          {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp add_player_to_game(
          %IncomingPlayerInfo{id: player_name, exists_already: false},
          :setup,
@@ -59,14 +59,14 @@ defmodule BoardGames.EventHandlers.JoinGame do
   end
 
   defp add_player_to_game(_, _, state) do
-    {:error, {:unsupported, state}}
+    {:error, {:game_in_progress, state}}
   end
 
   @spec existing_players(list(String.t())) :: list(String.t())
   defp existing_players([_ | _] = existing_players), do: existing_players
   defp existing_players(_), do: []
 
-  @spec assign_color(String.t(), Map.t()) :: Map.t()
+  @spec assign_color(String.t(), map()) :: map()
   defp assign_color(player_name, marble_colors) do
     with [first_available_color | _] <-
            marble_colors

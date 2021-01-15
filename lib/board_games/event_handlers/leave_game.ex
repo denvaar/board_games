@@ -6,7 +6,7 @@ defmodule BoardGames.EventHandlers.LeaveGame do
 
   alias BoardGames.GameState
 
-  @spec handle({String.t()}, GameState.game_state()) :: {:ok, GameState.game_state()}
+  @spec handle({String.t()}, GameState.t()) :: {:ok, GameState.t()}
   def handle({player_name}, state) do
     if state.status == :setup do
       remaining_players = Enum.reject(state.players, &(&1 == player_name))
