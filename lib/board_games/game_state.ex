@@ -3,14 +3,14 @@ defmodule BoardGames.GameState do
   Defines a struct to hold the game state used throughout the app.
   """
 
-  alias BoardGames.Marble
+  alias BoardGames.{BoardLocation, SternhalmaAdapter, Marble}
 
   @type game_status :: :setup | :playing | :over
 
   @type t :: %__MODULE__{
-          board: Sternhalma.Board.t(),
+          board: list(BoardLocation.t()),
           id: binary(),
-          last_move: list(Sternhalma.Cell.t()),
+          last_move: list(BoardLocation.t()),
           marble_colors: map(),
           marbles: list(Marble.t()),
           players: list(String.t()),
@@ -25,7 +25,7 @@ defmodule BoardGames.GameState do
   @enforce_keys [:id]
   defstruct [
     :id,
-    board: Sternhalma.empty_board(),
+    board: SternhalmaAdapter.empty_board(),
     last_move: [],
     marble_colors: %{},
     marbles: [],

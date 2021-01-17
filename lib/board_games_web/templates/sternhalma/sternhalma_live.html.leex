@@ -8,14 +8,16 @@
 
     <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg);">
 
-      <%= for {cell, index} <- Enum.with_index(@game.board) do %>
+      <%= for board_location <- @game.board do %>
         <div
           <%= if @game.turn == @player_name and @start != nil do %>
             phx-click="board-cell-click"
-            phx-value-idx="<%= index %>"
+            phx-value-x="<%= board_location.grid_position.x %>"
+            phx-value-y="<%= board_location.grid_position.y %>"
+            phx-value-z="<%= board_location.grid_position.z %>"
           <% end %>
-            style="<%= board_cell_styles(cell, @game.players, @player_name, @game.last_move) %>"
-            class="<%= board_cell_css_classes(@game, @player_name, @start, cell, @game.last_move) %>">
+            style="<%= board_cell_styles(board_location, @game.players, @player_name, @game.last_move) %>"
+            class="<%= board_cell_css_classes(@game, @player_name, @start, board_location, @game.last_move) %>">
         </div>
       <% end %>
 

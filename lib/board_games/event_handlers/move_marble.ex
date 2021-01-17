@@ -4,31 +4,31 @@ defmodule BoardGames.EventHandlers.MoveMarble do
   from one position to another.
   """
 
-  alias BoardGames.GameState
+  alias BoardGames.{SternhalmaAdapter, GameState, BoardLocation}
 
-  @spec handle({Sternhalma.Cell.t(), Sternhalma.Cell.t()}, GameState.t()) ::
+  @spec handle({BoardLocation.t(), BoardLocation.t()}, GameState.t()) ::
           {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({start, finish}, state) do
     move_marble(
-      {start.marble == state.turn, start, finish},
+      {start.occupied_by == state.turn, start, finish},
       state
     )
   end
 
-  @spec move_marble({boolean(), Sternhalma.Cell.t(), Sternhalma.Cell.t()}, GameState.t()) ::
+  @spec move_marble({boolean(), BoardLocation.t(), BoardLocation.t()}, GameState.t()) ::
           {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   defp move_marble({true, start, finish}, state) do
-    path = Sternhalma.find_path(state.board, start, finish)
+    path = SternhalmaAdapter.find_path(state.board, start, finish)
 
     if !Enum.empty?(path) do
-      board = Sternhalma.move_marble(state.board, start.marble, start, finish)
+      board = SternhalmaAdapter.move_marble(state.board, start.occupied_by, start, finish)
 
       [current_cell | remaining_path] = path
 
       timer_ref =
         Process.send_after(
           self(),
-          {:advance_marble_along_path, current_cell.position, remaining_path},
+          {:advance_marble_along_path, current_cell.grid_position, remaining_path},
           1
         )
 

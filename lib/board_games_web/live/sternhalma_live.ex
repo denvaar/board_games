@@ -14,7 +14,14 @@ defmodule BoardGamesWeb.SternhalmaLive do
 
   use BoardGamesWeb, :live_view
 
-  alias BoardGames.{GameSupervisor, LiveMonitor, GameServer, GameState}
+  alias BoardGames.{
+    GameSupervisor,
+    LiveMonitor,
+    GameServer,
+    SternhalmaAdapter,
+    BoardLocation,
+    GameState
+  }
 
   @impl true
   def mount(_params, session, socket) do
@@ -81,23 +88,31 @@ defmodule BoardGamesWeb.SternhalmaLive do
       socket.assigns.game.marbles
       |> Enum.find(&(&1.id === marble_id))
 
+    marble_grid_position = SternhalmaAdapter.board_position({marble.x, marble.y})
+
     cell =
-      socket.assigns.game.board
-      |> Enum.find(&(&1.position == Sternhalma.from_pixel({marble.x, marble.y})))
+      Enum.find(socket.assigns.game.board, fn location ->
+        location.grid_position == marble_grid_position
+      end)
 
     {:noreply, assign(socket, start: cell)}
   end
 
-  def handle_event("board-cell-click", %{"idx" => index}, socket)
+  def handle_event("board-cell-click", %{"x" => x, "y" => y, "z" => z}, socket)
       when socket.assigns.start != nil do
     start = Map.get(socket.assigns, :start)
 
-    cell =
-      socket.assigns.game.board
-      |> Enum.at(String.to_integer(index))
+    board_location =
+      Enum.find(socket.assigns.game.board, fn location ->
+        location.grid_position == %{
+          x: String.to_integer(x),
+          y: String.to_integer(y),
+          z: String.to_integer(z)
+        }
+      end)
 
     message =
-      with {:ok, game} <- GameServer.move_marble(socket.assigns.game_id, start, cell) do
+      with {:ok, game} <- GameServer.move_marble(socket.assigns.game_id, start, board_location) do
         broadcast_game_state_update!(socket.assigns.game_id, game)
         nil
       else
@@ -178,8 +193,8 @@ defmodule BoardGamesWeb.SternhalmaLive do
   defp message_for_code(:game_in_progress), do: "Game is in progress."
   defp message_for_code(_), do: "??? wat"
 
-  @spec update_marble_selection(non_neg_integer(), Sternhalma.Cell.t()) ::
-          nil | Sternhalma.Cell.t()
+  @spec update_marble_selection(non_neg_integer(), BoardLocation.t()) ::
+          nil | BoardLocation.t()
   defp update_marble_selection(0, _selection_start), do: nil
   defp update_marble_selection(_seconds_remaining, selection_start), do: selection_start
 end

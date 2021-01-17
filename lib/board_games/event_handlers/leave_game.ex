@@ -4,7 +4,7 @@ defmodule BoardGames.EventHandlers.LeaveGame do
   responses to a player leaving.
   """
 
-  alias BoardGames.GameState
+  alias BoardGames.{SternhalmaAdapter, GameState}
 
   @spec handle({String.t()}, GameState.t()) :: {:ok, GameState.t()}
   def handle({player_name}, state) do
@@ -13,7 +13,7 @@ defmodule BoardGames.EventHandlers.LeaveGame do
 
       new_state = %{
         state
-        | board: Sternhalma.empty_board(),
+        | board: SternhalmaAdapter.empty_board(),
           marbles: [],
           players: [],
           marble_colors: %{}
