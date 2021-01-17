@@ -177,7 +177,8 @@ defmodule BoardGamesWeb.SternhalmaLive do
     game_id
   end
 
-  @spec ensure_player_joins(String.t(), String.t()) :: term()
+  @spec ensure_player_joins(String.t(), String.t()) ::
+          {:ok, GameState.t()} | {:error, atom(), GameState.t()}
   defp ensure_player_joins(game_id, player_name) do
     game_id
     |> GameServer.join_game(player_name)

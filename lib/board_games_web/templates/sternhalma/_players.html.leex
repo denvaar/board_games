@@ -3,7 +3,7 @@
   <%= if @game.status == :setup do %>
 
     <div>
-      <%= if length(@game.players) > 1 do %>
+      <%= if length(@game.players) > 1 and Enum.find(@game.players, & &1 == @player) != nil do %>
         <button phx-click="start-game" class="button">Play</button>
       <% else %>
         <button disabled title="At least two players required before starting" class="button">Play</button>
@@ -12,9 +12,15 @@
 
   <% end %>
 
-  <%= if Enum.find(@game.players, & &1 == @player) == nil do %>
+  <%= if Enum.find(@game.players, & &1 == @player) == nil and @game.status == :playing do %>
     <div class="player">
       <p class="player-name"><i>This game already started -- you are only allowed to watch 👀</i></p>
+    </div>
+  <% end %>
+
+  <%= if Enum.find(@game.players, & &1 == @player) == nil and @game.status == :setup do %>
+    <div class="player">
+      <p class="player-name"><i>This game is full -- you are only allowed to watch 👀</i></p>
     </div>
   <% end %>
 
