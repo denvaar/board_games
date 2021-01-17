@@ -19,10 +19,9 @@ defmodule BoardGames.EventHandlers.JoinGame do
   @spec handle({String.t()}, GameState.t()) ::
           {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({player_name}, state) do
-    %IncomingPlayerInfo{
-      id: player_name,
-      exists_already: !!Enum.find(existing_players(state.players), &(&1 == player_name))
-    }
+    exists_already = !!Enum.find(existing_players(state.players), &(&1 == player_name))
+
+    %IncomingPlayerInfo{id: player_name, exists_already: exists_already}
     |> add_player_to_game(state.status, state)
   end
 
@@ -51,6 +50,7 @@ defmodule BoardGames.EventHandlers.JoinGame do
         | board: board,
           marbles: marbles ++ state.marbles,
           players: [player_name | state.players],
+          connected_players: [player_name | state.connected_players],
           marble_colors: marble_colors
       }
 
@@ -61,8 +61,10 @@ defmodule BoardGames.EventHandlers.JoinGame do
     end
   end
 
-  defp add_player_to_game(_, _, state) do
-    {:error, {:game_in_progress, state}}
+  defp add_player_to_game(incoming_player_info, _, state) do
+    {:error,
+     {:game_in_progress,
+      %{state | connected_players: [incoming_player_info.id | state.connected_players]}}}
   end
 
   @spec existing_players(list(String.t())) :: list(String.t())

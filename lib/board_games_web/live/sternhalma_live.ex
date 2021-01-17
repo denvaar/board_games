@@ -62,7 +62,7 @@ defmodule BoardGamesWeb.SternhalmaLive do
     {:ok, game} = GameServer.leave_game(game_id, player_id)
     broadcast_game_state_update!(game_id, game)
 
-    if length(game.players) <= 0 do
+    if length(game.connected_players) == 0 do
       GameSupervisor.terminate_child(game_id)
     end
 

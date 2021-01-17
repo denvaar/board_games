@@ -4,31 +4,24 @@ defmodule BoardGames.EventHandlers.LeaveGame do
   responses to a player leaving.
   """
 
-  alias BoardGames.{SternhalmaAdapter, GameState}
+  alias BoardGames.{EventHandlers, GameState}
 
   @spec handle({String.t()}, GameState.t()) :: {:ok, GameState.t()}
   def handle({player_name}, state) do
-    if state.status == :setup do
-      remaining_players = Enum.reject(state.players, &(&1 == player_name))
+    {:ok, leave_game(state, state.status, player_name)}
+  end
 
-      new_state = %{
-        state
-        | board: SternhalmaAdapter.empty_board(),
-          marbles: [],
-          players: [],
-          marble_colors: %{}
-      }
+  @spec leave_game(GameState.t(), GameState.game_status(), String.t()) :: GameState.t()
+  defp leave_game(state, :setup, player_name) do
+    state.players
+    |> Enum.reject(&(&1 == player_name))
+    |> Enum.reduce(%GameState{id: state.id}, fn player_name, state_acc ->
+      {:ok, new_state} = EventHandlers.JoinGame.handle({player_name}, state_acc)
+      new_state
+    end)
+  end
 
-      final_state =
-        remaining_players
-        |> Enum.reduce(new_state, fn player_name, state_acc ->
-          {:ok, new_state} = BoardGames.EventHandlers.JoinGame.handle({player_name}, state_acc)
-          new_state
-        end)
-
-      {:ok, final_state}
-    else
-      {:ok, state}
-    end
+  defp leave_game(state, _game_status, player_name) do
+    %{state | connected_players: Enum.reject(state.connected_players, &(&1 == player_name))}
   end
 end
