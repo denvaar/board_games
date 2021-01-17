@@ -4,9 +4,16 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
   position along a path.
   """
 
-  alias BoardGames.{Marble, Helpers, GameState, EventHandlers, SternhalmaAdapter}
+  alias BoardGames.{
+    Marble,
+    Helpers,
+    GameState,
+    BoardLocation,
+    EventHandlers,
+    SternhalmaAdapter
+  }
 
-  @spec handle({Sternhalma.Hex.t(), list(Sternhalma.Cell.t())}, GameState.t()) ::
+  @spec handle({BoardLocation.grid_position(), list(BoardLocation.t())}, GameState.t()) ::
           {:ok, GameState.t()} | {:error, {atom(), GameState.t()}}
   def handle({_current_position, []}, state) do
     winner = SternhalmaAdapter.winner(state.board)
@@ -39,13 +46,13 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
       update_marble_position(
         state.marbles,
         current_position,
-        next_spot.position
+        next_spot.grid_position
       )
 
     timer_ref =
       Process.send_after(
         self(),
-        {:advance_marble_along_path, next_spot.position, path},
+        {:advance_marble_along_path, next_spot.grid_position, path},
         500
       )
 
@@ -63,14 +70,17 @@ defmodule BoardGames.EventHandlers.AdvanceMarble do
     {:ok, new_state}
   end
 
-  @spec update_marble_position(list(Marble.t()), Sternhalma.Hex.t(), Sternhalma.Hex.t()) ::
-          list(Marble.t())
+  @spec update_marble_position(
+          list(Marble.t()),
+          BoardLocation.grid_position(),
+          BoardLocation.grid_position()
+        ) :: list(Marble.t())
   defp update_marble_position(marbles, current_position, target_position) do
-    {x, y} = Sternhalma.to_pixel(target_position)
+    {x, y} = SternhalmaAdapter.screen_position(target_position)
 
     marbles
     |> Enum.map(fn marble ->
-      position = Sternhalma.from_pixel({marble.x, marble.y})
+      position = SternhalmaAdapter.board_position({marble.x, marble.y})
 
       if position == current_position do
         %Marble{marble | x: Float.round(x, 3), y: Float.round(y, 3)}

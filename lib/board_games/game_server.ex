@@ -7,7 +7,7 @@ defmodule BoardGames.GameServer do
 
   use GenServer, restart: :transient
 
-  alias BoardGames.{GameState, Helpers, EventHandlers}
+  alias BoardGames.{BoardLocation, GameState, Helpers, EventHandlers}
 
   @time_limit_seconds 10
 
@@ -53,7 +53,7 @@ defmodule BoardGames.GameServer do
 
   See `BoardGames.EventHandlers.MoveMarble` for details of what is involved in this.
   """
-  @spec move_marble(String.t(), Sternhalma.Cell.t(), Sternhalma.Cell.t()) :: term()
+  @spec move_marble(String.t(), BoardLocation.t(), BoardLocation.t()) :: term()
   def move_marble(game_id, start, finish) do
     GenServer.call(via(game_id), {:move_marble, start, finish})
   end

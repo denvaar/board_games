@@ -6,7 +6,12 @@ defmodule BoardGamesWeb.SternhalmaView do
 
   use BoardGamesWeb, :view
 
-  alias BoardGames.{Marble, GameState}
+  alias BoardGames.{
+    Marble,
+    GameState,
+    BoardLocation,
+    SternhalmaAdapter
+  }
 
   @board_size 465
   @min_x -0.39230484541326227
@@ -46,33 +51,30 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Enum.join(" ")
   end
 
-  @spec marble_css_classes(GameState.t(), String.t(), String.t(), Sternhalma.Cell.t(), Marble.t()) ::
+  @spec marble_css_classes(GameState.t(), String.t(), String.t(), BoardLocation.t(), Marble.t()) ::
           String.t()
   def marble_css_classes(game, marble_owner, player_name, start, marble) do
     is_turn = game.status == :playing and game.turn == player_name
     last_path = game.last_move
 
-    marble_position = Sternhalma.from_pixel({marble.x, marble.y})
+    marble_position = SternhalmaAdapter.board_position({marble.x, marble.y})
 
     path_includes_marble? =
       last_path != nil and
-        Enum.any?(last_path, fn path_cell -> path_cell.position == marble_position end)
+        Enum.any?(last_path, fn location -> location.grid_position == marble_position end)
 
     ["marble"]
     |> add_if(fn -> "clicked" end, is_turn and marble_owner == player_name and start == nil)
-    |> add_if(fn -> "glow" end, start != nil and start.position == marble_position)
+    |> add_if(fn -> "glow" end, start != nil and start.grid_position == marble_position)
     |> add_if(fn -> "path" end, path_includes_marble?)
     |> Enum.join(" ")
   end
 
-  @spec marble_styles(Marble.t(), list(String.t()), String.t(), list(Sternhalma.Cell.t())) ::
+  @spec marble_styles(Marble.t(), list(String.t()), String.t(), list(BoardLocation.t())) ::
           String.t()
   def marble_styles(marble, players, player_name, last_path) do
-    {left, bottom} =
-      {marble.x, marble.y}
-      |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
-
-    marble_position = Sternhalma.from_pixel({marble.x, marble.y})
+    {left, bottom} = normalize({marble.x, marble.y})
+    marble_position = SternhalmaAdapter.board_position({marble.x, marble.y})
 
     step_index = compute_step_index(last_path, marble_position)
 
@@ -91,16 +93,18 @@ defmodule BoardGamesWeb.SternhalmaView do
   @spec board_cell_css_classes(
           GameState.t(),
           String.t(),
-          Sternhalma.Cell.t(),
-          Sternhalma.Cell.t(),
-          list(Sternhalma.Cell.t())
+          BoardLocation.t(),
+          BoardLocation.t(),
+          list(BoardLocation.t())
         ) :: String.t()
-  def board_cell_css_classes(game, player_name, start, cell, last_path) do
+  def board_cell_css_classes(game, player_name, start, board_location, last_path) do
     is_turn? = game.turn == player_name and game.status == :playing
 
     path_includes_cell? =
       last_path != nil and
-        Enum.any?(last_path, fn path_cell -> path_cell.position == cell.position end)
+        Enum.any?(last_path, fn location ->
+          location.grid_position == board_location.grid_position
+        end)
 
     ["board-cell"]
     |> add_if(fn -> "clicked" end, is_turn? and start != nil)
@@ -109,19 +113,18 @@ defmodule BoardGamesWeb.SternhalmaView do
   end
 
   @spec board_cell_styles(
-          Sternhalma.Cell.t(),
+          BoardLocation.t(),
           list(String.t()),
           String.t(),
-          list(Sternhalma.Cell.t())
+          list(BoardLocation.t())
         ) :: String.t()
-  def board_cell_styles(cell, players, player_name, last_path) do
-    {left, bottom} =
-      cell.position
-      |> Sternhalma.to_pixel()
-      |> normalize(@board_size, @min_x, @max_x, @min_y, @max_y)
+  def board_cell_styles(board_location, players, player_name, last_path) do
+    {left, bottom} = normalize(board_location.screen_position)
 
     step_index =
-      Enum.find_index(last_path, fn path_cell -> path_cell.position == cell.position end)
+      Enum.find_index(last_path, fn location ->
+        location.grid_position == board_location.grid_position
+      end)
 
     [
       "--left:#{left}px",
@@ -154,16 +157,21 @@ defmodule BoardGamesWeb.SternhalmaView do
     [item.() | items]
   end
 
-  @spec compute_step_index(list(Sternhalma.Cell.t()), Sternhalma.Hex.t()) ::
+  @spec compute_step_index(list(BoardLocation.t()), BoardLocation.grid_position()) ::
           nil | non_neg_integer()
   defp compute_step_index(path, _marble_position) when path == nil or length(path) == 0, do: nil
 
   defp compute_step_index(path, marble_position) do
-    final_position = List.last(path).position
+    final_position = List.last(path).grid_position
 
     compute_step_index(final_position, marble_position, length(path))
   end
 
+  @spec compute_step_index(
+          BoardLocation.grid_position(),
+          BoardLocation.grid_position(),
+          non_neg_integer()
+        ) :: non_neg_integer()
   defp compute_step_index(final_position, marble_position, path_length)
        when final_position == marble_position,
        do: path_length
@@ -209,22 +217,21 @@ defmodule BoardGamesWeb.SternhalmaView do
     |> Tuple.to_list()
   end
 
-  @spec normalize({number(), number()}, non_neg_integer(), number(), number(), number(), number()) ::
-          {integer(), integer()}
-  defp normalize({x, y}, size, min_x, max_x, min_y, max_y) do
+  @spec normalize({number(), number()}) :: {integer(), integer()}
+  defp normalize({x, y}) do
     # Fit 2d point within a box of a dimension represented by size
 
     # center
-    x = x - (max_x - min_x) / 2
-    y = y - (max_y - min_y) / 2
+    x = x - (@max_x - @min_x) / 2
+    y = y - (@max_y - @min_y) / 2
 
     # scale
-    scale = max(max_x - min_x, max_y - min_y)
-    x = x / scale * size + 12
-    y = y / scale * size - 10
+    scale = max(@max_x - @min_x, @max_y - @min_y)
+    x = x / scale * @board_size + 12
+    y = y / scale * @board_size - 10
 
-    x = round(x + size / 2)
-    y = round(y + size / 2)
+    x = round(x + @board_size / 2)
+    y = round(y + @board_size / 2)
 
     {x, y}
   end

@@ -33,6 +33,7 @@ defmodule BoardGames.EventHandlers.JoinGame do
          :setup,
          state
        ) do
+    # TODO handle :error
     {:ok, board} = SternhalmaAdapter.setup_marbles(state.board, player_name)
 
     marble_colors = assign_color(player_name, state.marble_colors)
