@@ -45,8 +45,7 @@ defmodule BoardGames.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
-      # {:sternhalma, git: "https://github.com/denvaar/sternhalma.git", tag: "0.03"}
-      {:sternhalma, path: "/Users/denvaar/projects/sternhalma"}
+      {:sternhalma, "~> 0.1.1"}
     ]
   end
 

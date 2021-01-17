@@ -33,30 +33,32 @@ defmodule BoardGames.EventHandlers.JoinGame do
          :setup,
          state
        ) do
-    # TODO handle :error
-    {:ok, board} = SternhalmaAdapter.setup_marbles(state.board, player_name)
+    with {:ok, board} <- SternhalmaAdapter.setup_marbles(state.board, player_name) do
+      marble_colors = assign_color(player_name, state.marble_colors)
 
-    marble_colors = assign_color(player_name, state.marble_colors)
+      default_colors = {"#000000", "#000000"}
+      colors = Map.get(marble_colors, player_name, default_colors)
 
-    default_colors = {"#000000", "#000000"}
-    colors = Map.get(marble_colors, player_name, default_colors)
+      marbles =
+        SternhalmaAdapter.marbles_from_cells(
+          board,
+          player_name,
+          colors
+        )
 
-    marbles =
-      SternhalmaAdapter.marbles_from_cells(
-        board,
-        player_name,
-        colors
-      )
+      new_state = %{
+        state
+        | board: board,
+          marbles: marbles ++ state.marbles,
+          players: [player_name | state.players],
+          marble_colors: marble_colors
+      }
 
-    new_state = %{
-      state
-      | board: board,
-        marbles: marbles ++ state.marbles,
-        players: [player_name | state.players],
-        marble_colors: marble_colors
-    }
-
-    {:ok, new_state}
+      {:ok, new_state}
+    else
+      {:error, :board_full} ->
+        {:error, {:board_full, state}}
+    end
   end
 
   defp add_player_to_game(_, _, state) do

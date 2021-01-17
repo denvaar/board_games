@@ -271,6 +271,7 @@ input {
 }
 
 .game-info {
+    z-index: 10;
     position: absolute;
     font-size: 14px;
     margin-left: 10px;
