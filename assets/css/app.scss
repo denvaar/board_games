@@ -187,6 +187,7 @@ input {
 }
 
 %common-cell {
+    padding: 0;
     position: absolute;
     width: 25px;
     height: 25px;
@@ -255,6 +256,9 @@ input {
         display: flex;
         align-items: center;
         justify-content: center;
+
+        display: -webkit-box;
+        -webkit-box-orient: horizontal;
 
         &::after {
             content: var(--path-step);

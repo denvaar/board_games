@@ -9,7 +9,7 @@
     <div class="board-container" style="transform:rotate(<%= rotate(@game.players, @player_name) %>deg);">
 
       <%= for board_location <- @game.board do %>
-        <div
+        <button
           <%= if @game.turn == @player_name and @start != nil do %>
             phx-click="board-cell-click"
             phx-value-x="<%= board_location.grid_position.x %>"
@@ -18,12 +18,12 @@
           <% end %>
             style="<%= board_cell_styles(board_location, @game.players, @player_name, @game.last_move) %>"
             class="<%= board_cell_css_classes(@game, @player_name, @start, board_location, @game.last_move) %>">
-        </div>
+        </button>
       <% end %>
 
       <%= for marble <- @game.marbles do %>
 
-        <div
+        <button
           id="<%= marble.id %>"
           <%= if @game.turn == @player_name and marble.belongs_to == @player_name and @start == nil do %>
             phx-click="marble-click"
@@ -31,7 +31,7 @@
           <% end %>
             class="<%= marble_css_classes(@game, marble.belongs_to, @player_name, @start, marble) %>"
             style="<%= marble_styles(marble, @game.players, @player_name, @game.last_move) %>">
-        </div>
+        </button>
 
       <% end %>
     </div>
